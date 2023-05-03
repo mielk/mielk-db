@@ -1,0 +1,27 @@
+{
+  "name": "mielk-db",
+  "version": "1.0.0",
+  "description": "Helpful utils for MySQL operations.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mielk/mielk-db.git"
+  },
+  "author": "Tomasz Mielniczek",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mielk/mielk-db/issues"
+  },
+  "homepage": "https://github.com/mielk/mielk-db#readme",
+  "devDependencies": {
+    "@babel/cli": "^7.21.5",
+    "@babel/core": "^7.21.8",
+    "@babel/node": "^7.20.7",
+    "@babel/preset-env": "^7.21.5",
+    "babel-jest": "^29.5.0",
+    "jest": "^29.5.0"
+  }
+}
