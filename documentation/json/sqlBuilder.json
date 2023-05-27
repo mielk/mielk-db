@@ -1,0 +1,268 @@
+{
+    "sqlBuilder": {
+        "getSelect": {
+            "functionName": "getSelect",
+            "summary": "This function generates a SQL SELECT command based on the provided parameters.",
+            "signature": "const getSelect = (select: string[] = [], from: string, where: <a href='where-condition'>WhereCondition</a>[] = [], order: <a href='order-rule'>OrderRule</a>[] = [], fieldsMap: { [key: string]: string } = {}): string => {}",
+            "parameters": [
+                {
+                    "name": "select",
+                    "type": "string[]",
+                    "optional": true,
+                    "default": [],
+                    "description": "An array of strings representing the properties to select. This parameter is optional and if omitted, defaults to an empty array."
+                },
+                {
+                    "name": "from",
+                    "type": "string",
+                    "description": "The name of the table from which to select. If this parameter is undefined or not a string, an error will be thrown."
+                },
+                {
+                    "name": "where",
+                    "type": "<a href=\"where-condition\">WhereCondition[]</a>",
+                    "optional": true,
+                    "default": [],
+                    "description": "An array of conditions to be met for the records to be selected. Each object in the array represents a condition, defined by the <a href=\"where-condition\">WhereCondition</a> interface. If it is not an array, an error will be thrown. An empty array will select all records. Refer to <a href=\"where-operator\">WhereOperator</a> enum for available operators."
+                },
+                {
+                    "name": "order",
+                    "type": "<a href='order-rule'>OrderRule</a>[]",
+                    "description": "An optional array of <a href='order-rule'>OrderRule</a> objects specifying the order of the results. This parameter can be omitted and defaults to an empty array."
+                },
+                {
+                    "name": "fieldsMap",
+                    "type": "{ [key: string]: string }",
+                    "description": "An optional object mapping object properties to field names. If omitted, the original property names will be used."
+                }
+            ],
+            "returns": {
+                "type": "string",
+                "description": "Returns a string representing a SQL SELECT command based on the provided parameters."
+            },
+            "examples": [
+                [
+                    "<span class=\"keyword\">const</span> select = [<span class=\"string\">'name'</span>, <span class=\"string\">'email'</span>];",
+                    "<span class=\"keyword\">const</span> from = <span class=\"string\">'users'</span>;",
+                    "<span class=\"keyword\">const</span> where = [{ field: <span class=\"string\">'isActive'</span>, operator: WhereOperator.Equal, value: <span class=\"boolean\">true</span> }];",
+                    "<span class=\"keyword\">const</span> order = [{ field: <span class=\"string\">'name'</span>, direction: OrderDirection.ASC }];",
+                    "<span class=\"keyword\">const</span> sql = <span class=\"function\">builder.getSelect</span>(select, from, where, order);",
+                    "console.log(sql); <span class=\"comment\">// Output: SELECT name, email FROM users WHERE isActive = 1 ORDER BY name ASC</span>"
+                ],
+                [
+                    "<span class=\"keyword\">const</span> select = [];",
+                    "<span class=\"keyword\">const</span> from = <span class=\"string\">'products'</span>;",
+                    "<span class=\"keyword\">const</span> where = [{ field: <span class=\"string\">'price'</span>, operator: WhereOperator.GreaterThan, value: <span class=\"number\">50</span> }];",
+                    "<span class=\"keyword\">const</span> fieldsMap = { price: <span class=\"string\">'product_price'</span> };",
+                    "<span class=\"keyword\">const</span> sql = <span class=\"function\">builder.getSelect</span>(select, from, where, undefined, fieldsMap);",
+                    "console.log(sql); <span class=\"comment\">// Output: SELECT * FROM products WHERE product_price > 50</span>"
+                ],
+                [
+                    "<span class=\"keyword\">const</span> select = [<span class=\"string\">'id'</span>, <span class=\"string\">'title'</span>];",
+                    "<span class=\"keyword\">const</span> from = <span class=\"string\">'books'</span>;",
+                    "<span class=\"keyword\">const</span> where = [{ field: <span class=\"string\">'author'</span>, operator: WhereOperator.Like, value: <span class=\"string\">'%John%'</span> }];",
+                    "<span class=\"keyword\">const</span> sql = <span class=\"function\">builder.getSelect</span>(select, from, where);",
+                    "console.log(sql); <span class=\"comment\">// Output: SELECT id, title FROM books WHERE author LIKE '%John%'</span>"
+                ],
+                [
+                    "<span class=\"keyword\">const</span> from = <span class=\"string\">'users'</span>;",
+                    "<span class=\"keyword\">const</span> where = [{ field: <span class=\"string\">'birthdate'</span>, operator: WhereOperator.LessThan, value: <span class=\"string\">'2000-01-01'</span> }];",
+                    "<span class=\"keyword\">const</span> sql = <span class=\"function\">builder.getSelect</span>(select, from, where);",
+                    "console.log(sql); <span class=\"comment\">// Output: SELECT name FROM users WHERE birthdate < '2000-01-01'</span>"
+                ],
+                [
+                    "<span class=\"keyword\">const</span> select = [<span class=\"string\">'id'</span>, <span class=\"string\">'name'</span>];",
+                    "<span class=\"keyword\">const</span> from = <span class=\"string\">'products'</span>;",
+                    "<span class=\"keyword\">const</span> where = [{ field: <span class=\"string\">'quantity'</span>, operator: WhereOperator.Equal, value: <span class=\"null\">null</span> }];",
+                    "<span class=\"keyword\">const</span> order = [{ field: <span class=\"string\">'name'</span>, direction: OrderDirection.ASC }];",
+                    "<span class=\"keyword\">const</span> fieldsMap = { quantity: <span class=\"string\">'product_quantity'</span> };",
+                    "<span class=\"keyword\">const</span> sql = class=\"function\">builder.getSelect</span>(select, from, where, order, fieldsMap);",
+                    "console.log(sql); <span class=\"comment\">// Output: SELECT id, name FROM products WHERE product_quantity IS NULL ORDER BY name ASC</span>"
+                ],
+                [
+                    "<span class=\"comment\">// For WhereConditions assigned with IN operator, if array of values contains null, then OR [field] IS NULL is appended",
+                    "<span class=\"keyword\">const</span> select = [<span class=\"string\">'id'</span>, <span class=\"string\">'name'</span>];",
+                    "<span class=\"keyword\">const</span> from = <span class=\"string\">'products'</span>;",
+                    "<span class=\"keyword\">const</span> where = [{ field: <span class=\"string\">'id'</span>, operator: WhereOperator.In, value: [1, 1, 2, <span class=\"null\">null</span>] }];",
+                    "<span class=\"keyword\">const</span> fieldsMap = { id: <span class=\"string\">'product_id'</span> };",
+                    "<span class=\"keyword\">const</span> sql = class=\"function\">builder.getSelect</span>(select, from, where, undefined, fieldsMap);",
+                    "console.log(sql); <span class=\"comment\">// Output: SELECT id, name FROM products WHERE product_id IN (1, 2) OR product_id IS NULL"
+                ]
+            ]
+        },
+        "getInsert": {
+            "functionName": "getInsert",
+            "summary": "This function constructs a SQL INSERT statement based on the provided parameters.",
+            "signature": "function getInsert(table: string, object: { [key: string]: string | number }, fieldsMap: { [key: string]: string } = {}): string",
+            "parameters": [
+                {
+                    "name": "table",
+                    "type": "string",
+                    "description": "The name of the table where data will be inserted. An error is thrown if this is empty, undefined, or not a string."
+                },
+                {
+                    "name": "object",
+                    "type": "{ [key: string]: string | number }",
+                    "description": "An object representing the data to be inserted. All properties of the object are included in the returned INSERT command. An error is thrown for an empty object or non-object."
+                },
+                {
+                    "name": "fieldsMap",
+                    "type": "{ [key: string]: string }",
+                    "description": "An optional object mapping the properties of the 'object' parameter to database field names. If a mapping is not specified or if a property is not found in 'fieldsMap', the original property names are used."
+                }
+            ],
+            "returns": {
+                "type": "string",
+                "description": "<span class=\"keyword\">Returns</span> the constructed SQL INSERT statement as a string."
+            },
+            "examples": [
+                [
+                    "<span class=\"function\">getInsert</span>('users', { name: 'John', age: 42 }, { name: 'user_name', age: 'user_age' }) <span class=\"comment\">// returns 'INSERT INTO users (user_name, user_age) VALUES ('John', 42)'</span>"
+                ],
+                [
+                    "<span class=\"function\">getInsert</span>('users', { name: 'John', age: 42 }) <span class=\"comment\">// returns 'INSERT INTO users (name, age) VALUES ('John', 42)'</span>"
+                ],
+                [
+                    "<span class=\"function\">getInsert</span>('users', { name: 'John', age: 42 }, { name: 'user_name' }) <span class=\"comment\">// returns 'INSERT INTO users (user_name, age) VALUES ('John', 42)'</span>"
+                ]
+            ]
+        },
+        "getUpdate": {
+            "summary": "Builds a SQL UPDATE command based on the given parameters.",
+            "signature": "const getUpdate = (table: string, object: { [key: string]: string | number }, id: number, fieldsMap?: { [key: string]: string }): string",
+            "parameters": [
+                {
+                    "name": "table",
+                    "type": "string",
+                    "description": "The name of the table. If empty, undefined or not a string, an error is thrown."
+                },
+                {
+                    "name": "object",
+                    "type": "{ [key: string]: string | number }",
+                    "description": "Object for which SQL UPDATE command should be created. All properties of the given object should be included in returned UPDATE command. For empty object or non-object, an error is thrown."
+                },
+                {
+                    "name": "id",
+                    "type": "number",
+                    "description": "ID of the object that should be updated. If there is mapping for 'id' in [fieldsMap] then this value should be used in the returned UPDATE command, otherwise [id] should be used as a name of the column. For values other than positive number, an error is thrown."
+                },
+                {
+                    "name": "fieldsMap",
+                    "type": "{ [key: string]: string }",
+                    "description": "Optional. Object containing mapping between object properties and names of the fields in the database. If it is not specified, the names of original properties are used as field names. If a specific property is not found in the [fieldsMap], the name of this property is used."
+                }
+            ],
+            "returns": {
+                "type": "string",
+                "description": "<span class=\"keyword\">Returns</span> the SQL UPDATE command based on the input parameters."
+            },
+            "examples": [
+                "<span class=\"function\">getUpdate</span>('users', { name: 'John', age: 42 }, 1, { name: 'user_name', age: 'user_age' }) <span class=\"comment\">// returns 'UPDATE users SET user_name = \"John\", user_age = 42 WHERE id = 1'</span>",
+                "<span class=\"function\">getUpdate</span>('users', { name: 'John', age: 42 }, 1) <span class=\"comment\">// returns 'UPDATE users SET name = \"John\", age = 42 WHERE id = 1' (no fieldsMap provided)</span>",
+                "<span class=\"function\">getUpdate</span>('users', { name: 'John', age: 42 }, 1, { name: 'user_name' }) <span class=\"comment\">// returns 'UPDATE users SET user_name = \"John\", age = 42 WHERE id = 1' (partial fieldsMap provided)</span>",
+                "<span class=\"function\">getUpdate</span>('users', { name: 'John', age: 42 }, 1, { }) <span class=\"comment\">// returns 'UPDATE users SET name = \"John\", age = 42 WHERE id = 1' (empty fieldsMap provided)</span>"
+            ]
+        },
+        "getDelete": {
+            "summary": "This function generates a SQL DELETE command based on the provided parameters.",
+            "signature": "const getDelete = (table: string, where: WhereCondition[], fieldsMap?: { [key: string]: string }): string",
+            "parameters": [
+                {
+                    "name": "table",
+                    "type": "string",
+                    "description": "The name of the table from which rows should be deleted. If this parameter is empty, undefined, or not a string, an error will be thrown."
+                },
+                {
+                    "name": "where",
+                    "type": "WhereCondition[]",
+                    "description": "An array of conditions, each specifying a field, a comparison operator, and a value for the WHERE clause of the SQL command. If this parameter is not an array or an empty array, an error will be thrown."
+                },
+                {
+                    "name": "fieldsMap",
+                    "type": "{ [key: string]: string }",
+                    "description": "An optional mapping from object properties to database field names. If a field is not found in this mapping, the object property name is used instead."
+                }
+            ],
+            "returns": {
+                "type": "string",
+                "description": "A string containing a SQL DELETE command."
+            },
+            "examples": [
+                [
+                    "<span class=\"keyword\">const</span> where = [{ field: <span class=\"string\">'name'</span>, operator: WhereOperator.Equal, value: <span class=\"string\">'John'</span> }];",
+                    "<span class=\"function\">getDelete</span>(<span class=\"string\">'users'</span>, where); <span class=\"comment\">// returns \"DELETE FROM users WHERE name = 'John'\"</span>"
+                ],
+                [
+                    "<span class=\"keyword\">const</span> where = [{ field: <span class=\"string\">'age'</span>, operator: WhereOperator.GreaterThan, value: 30 }];",
+                    "<span class=\"keyword\">const</span> fieldsMap = { age: <span class=\"string\">'user_age'</span> };",
+                    "<span class=\"function\">getDelete</span>(<span class=\"string\">'users'</span>, where, fieldsMap); <span class=\"comment\">// returns \"DELETE FROM users WHERE user_age > 30\"</span>"
+                ],
+                [
+                    "<span class=\"keyword\">const</span> where = [{ field: <span class=\"string\">'name'</span>, operator: WhereOperator.Equal, value: <span class=\"string\">'John'</span> }, { field: <span class=\"string\">'age'</span>, operator: WhereOperator.LessThan, value: 30 }];",
+                    "<span class=\"keyword\">const</span> fieldsMap = { name: <span class=\"string\">'user_name'</span>, age: <span class=\"string\">'user_age'</span> };",
+                    "<span class=\"function\">getDelete</span>(<span class=\"string\">'users'</span>, where, fieldsMap); <span class=\"comment\">// returns \"DELETE FROM users WHERE user_name = 'John' AND user_age < 30\"</span>"
+                ]
+            ]
+        },
+        "getDeactivate": {
+            "summary": "This function generates a SQL UPDATE command to set the 'is_active' field of a row to false based on the provided parameters.",
+            "signature": "const getDeactivate = (table: string, where: WhereCondition[], fieldsMap?: { [key: string]: string }): string",
+            "parameters": [
+                {
+                    "name": "table",
+                    "type": "string",
+                    "description": "The name of the table from which the row should be deactivated. If this parameter is empty, undefined, or not a string, an error will be thrown."
+                },
+                {
+                    "name": "where",
+                    "type": "WhereCondition[]",
+                    "description": "An array of conditions, each specifying a field, a comparison operator, and a value for the WHERE clause of the SQL command. If this parameter is not an array or an empty array, an error will be thrown."
+                },
+                {
+                    "name": "fieldsMap",
+                    "type": "{ [key: string]: string }",
+                    "description": "An optional mapping from object properties to database field names. If a field is not found in this mapping, the object property name is used instead. If 'isActive' is not present, it will be added to the command as 'is_active'."
+                }
+            ],
+            "returns": {
+                "type": "string",
+                "description": "A string containing a SQL UPDATE command to set the 'is_active' field to false."
+            },
+            "examples": [
+                [
+                    "<span class=\"keyword\">const</span> where = [{ field: <span class=\"string\">'id'</span>, operator: WhereOperator.Equal, value: 1 }];",
+                    "<span class=\"function\">getDeactivate</span>(<span class=\"string\">'users'</span>, where); <span class=\"comment\">// returns \"UPDATE users SET is_active = false WHERE id = 1\"</span>"
+                ],
+                [
+                    "<span class=\"keyword\">const</span> where = [{ field: <span class=\"string\">'id'</span>, operator: WhereOperator.Equal, value: 1 }];",
+                    "<span class=\"keyword\">const</span> fieldsMap = { id: <span class=\"string\">'user_id'</span>, isActive: <span class=\"string\">'is_active'</span> };",
+                    "<span class=\"function\">getDeactivate</span>(<span class=\"string\">'users'</span>, where, fieldsMap); <span class=\"comment\">// returns \"UPDATE users SET is_active = false WHERE user_id = 1\"</span>"
+                ]
+            ]
+        },
+        "getCallProc": {
+            "summary": "This function generates a SQL CALL statement for a given MySQL stored procedure.",
+            "signature": "getCallProc(procName: string, params?: (number | string)[] | number | string): string",
+            "parameters": [
+                {
+                    "name": "procName",
+                    "type": "string",
+                    "description": "The name of the procedure to call. Must be a string and cannot be empty."
+                },
+                {
+                    "name": "params",
+                    "type": "array | number | string",
+                    "description": "An array of primitives (number or string) or a single primitive to be used as parameters for the procedure. If no parameters are provided, or if it's an empty array, the function appends empty brackets after the procedure name."
+                }
+            ],
+            "returns": {
+                "type": "string",
+                "description": "<span class=\"keyword\">Returns</span>: A SQL CALL statement as a string."
+            },
+            "examples": [
+                "<span class=\"keyword\">const</span> call = getCallProc(<span class=\"string\">'procedure'</span>, [<span class=\"string\">'test'</span>, 1]); <span class=\"comment\">// returns \"CALL procedure('test', 1)\"</span>",
+                "<span class=\"keyword\">const</span> call = getCallProc(<span class=\"string\">'procedure'</span>); <span class=\"comment\">// returns \"CALL procedure()\"</span>",
+                "<span class=\"keyword\">const</span> call = getCallProc(<span class=\"string\">'procedure'</span>, <span class=\"string\">'test'</span>); <span class=\"comment\">// returns \"CALL procedure('test')\"</span>"
+            ]
+        }
+    }
+}
