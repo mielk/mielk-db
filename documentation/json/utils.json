@@ -1,0 +1,51 @@
+{
+    "utils": {
+        "getRequestTypeFromSql": {
+            "summary": "A function to determine the type of SQL request from an SQL query string.",
+            "signature": "getRequestTypeFromSql(sql: string): RequestType",
+            "parameters": [
+                {
+                    "name": "sql",
+                    "type": "string",
+                    "description": "The SQL query string."
+                }
+            ],
+            "returns": {
+                "type": "RequestType",
+                "description": "The type of SQL request identified from the input string, or 'Unknown' if the SQL string does not start with a recognized SQL command."
+            },
+            "examples": [
+                [
+                    "<span class='comment'>// Example usage with SELECT query:</span>",
+                    "<span class='keyword'>let</span> sql = <span class='string'>'SELECT * FROM Users'</span>;",
+                    "<span class='keyword'>let</span> requestType = <span class='function'>getRequestTypeFromSql</span>(sql);",
+                    "console.<span class='function'>log</span>(requestType); <span class='comment'>// Outputs: 'SELECT'</span>"
+                ],
+                [
+                    "<span class='comment'>// Example usage with INSERT query:</span>",
+                    "<span class='keyword'>let</span> sql = <span class='string'>'INSERT INTO Users VALUES (1, \"John\")'</span>;",
+                    "<span class='keyword'>let</span> requestType = <span class='function'>getRequestTypeFromSql</span>(sql);",
+                    "console.<span class='function'>log</span>(requestType); <span class='comment'>// Outputs: 'INSERT'</span>"
+                ],
+                [
+                    "<span class='comment'>// Example usage with UPDATE query:</span>",
+                    "<span class='keyword'>let</span> sql = <span class='string'>'UPDATE Users SET name = \"Jane\" WHERE id = 1'</span>;",
+                    "<span class='keyword'>let</span> requestType = <span class='function'>getRequestTypeFromSql</span>(sql);",
+                    "console.<span class='function'>log</span>(requestType); <span class='comment'>// Outputs: 'UPDATE'</span>"
+                ],
+                [
+                    "<span class='comment'>// Example usage with DELETE query:</span>",
+                    "<span class='keyword'>let</span> sql = <span class='string'>'DELETE FROM Users WHERE id = 1'</span>;",
+                    "<span class='keyword'>let</span> requestType = <span class='function'>getRequestTypeFromSql</span>(sql);",
+                    "console.<span class='function'>log</span>(requestType); <span class='comment'>// Outputs: 'DELETE'</span>"
+                ],
+                [
+                    "<span class='comment'>// Example usage with CREATE TABLE query:</span>",
+                    "<span class='keyword'>let</span> sql = <span class='string'>'CREATE TABLE Users'</span>;",
+                    "<span class='keyword'>let</span> requestType = <span class='function'>getRequestTypeFromSql</span>(sql);",
+                    "console.<span class='function'>log</span>(requestType); <span class='comment'>// Outputs: '' (Unknown)</span>"
+                ]
+            ]
+        }
+    }
+}
