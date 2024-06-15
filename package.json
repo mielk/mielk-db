@@ -35,7 +35,7 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
-    "mielk-fn": "^1.0.14",
+    "mielk-fn": "^1.0.15",
     "mysql2": "^3.10.0"
   }
 }
