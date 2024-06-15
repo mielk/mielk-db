@@ -37,5 +37,8 @@
   "dependencies": {
     "mielk-fn": "^1.0.15",
     "mysql2": "^3.10.0"
-  }
+  },
+  "files": [
+    "lib"
+  ]
 }
