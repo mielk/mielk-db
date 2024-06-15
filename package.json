@@ -1,6 +1,6 @@
 {
   "name": "mielk-db",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Helpful utils for MySQL operations.",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -8,7 +8,6 @@
   "scripts": {
     "prepublishOnly": "npm test",
     "test": "jest",
-    "test-coverage": "jest --coverage",
     "build": "tsc"
   },
   "repository": {
@@ -25,17 +24,21 @@
     "@babel/cli": "^7.24.7",
     "@babel/core": "^7.24.7",
     "@babel/node": "^7.24.7",
+    "@babel/plugin-transform-modules-commonjs": "^7.24.7",
     "@babel/preset-env": "^7.24.7",
     "@types/jest": "^29.5.12",
     "@types/node": "^20.14.2",
     "babel-jest": "^29.7.0",
+    "babel-plugin-transform-class-properties": "^6.24.1",
+    "babel-preset-jest": "^29.6.3",
     "jest": "^29.7.0",
+    "jest-cli": "^29.7.0",
     "jest-html-reporters": "^3.1.7",
     "ts-jest": "^29.1.4",
     "typescript": "^5.4.5"
   },
   "dependencies": {
-    "mielk-fn": "^1.0.16",
+    "mielk-fn": "^1.0.19",
     "mysql2": "^3.10.0"
   },
   "files": [

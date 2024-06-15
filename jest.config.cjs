@@ -1,13 +1,23 @@
-export default {
+module.exports = {
 	roots: ['<rootDir>/tests'], // Specify the root directory for Jest to look for tests
 	transform: {
-		'^.+\\.tsx?$': 'ts-jest', // Transform TypeScript files using ts-jest
+		'^.+\\.tsx?$': 'ts-jest', // Adjust based on your TypeScript setup
 	},
 	testMatch: [
 		'**/?(*.)+(spec|test).ts?(x)', // Match test files with .spec.ts or .test.ts extensions
 	],
 	moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'], // File extensions for modules
-	transformIgnorePatterns: ['/node_modules/(?!mielk-fn)'],
+	moduleNameMapper: {
+		'^mielk-fn$': '<rootDir>/node_modules/mielk-fn/lib/index.js', // Adjust the path if necessary
+	},
+	globals: {
+		'ts-jest': {
+			tsconfig: './tsconfig.json', // Adjust the path to your tsconfig.json
+		},
+	},
+	preset: 'ts-jest',
+	testEnvironment: 'node',
+	transformIgnorePatterns: ['/node_modules/(?!mielk-fn|mielk-db)'],
 	reporters: [
 		'default',
 		[
@@ -22,4 +32,5 @@ export default {
 			},
 		],
 	],
+	// Other Jest configurations you might have
 };
