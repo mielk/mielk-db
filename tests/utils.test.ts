@@ -1,4 +1,4 @@
-import { RequestType } from '../src/models/statement';
+import { RequestType } from '../src/models/sql';
 import utils from '../src/utils';
 
 describe('getRequestTypeFromSql', () => {
@@ -12,6 +12,12 @@ describe('getRequestTypeFromSql', () => {
 
 	test('should return RequestType.Insert for INSERT statement', () => {
 		const sql = 'INSERT INTO users (name) VALUES ("John")';
+		const result = getRequestTypeFromSql(sql);
+		expect(result).toBe(RequestType.Insert);
+	});
+
+	test('should return RequestType.Insert for INSERT statement with SELECT used to specify values', () => {
+		const sql = 'INSERT INTO users (name) SELECT "John"';
 		const result = getRequestTypeFromSql(sql);
 		expect(result).toBe(RequestType.Insert);
 	});

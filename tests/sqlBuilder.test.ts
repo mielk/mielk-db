@@ -1,4 +1,4 @@
-import { WhereOperator, WhereCondition } from '../src/models/statement';
+import { WhereOperator, WhereCondition } from '../src/models/sql';
 import builder from '../src/sqlBuilder';
 
 describe('getSelect', () => {

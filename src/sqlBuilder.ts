@@ -1,5 +1,5 @@
 import { escape } from 'mysql2/promise';
-import { WhereCondition, OrderRule, WhereOperator } from './models/statement';
+import { WhereCondition, OrderRule, WhereOperator } from './models/sql';
 import { strings, objects, variables } from 'mielk-fn';
 
 const defaultIsActiveField = 'is_active';

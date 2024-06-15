@@ -1,7 +1,8 @@
 import { FieldPacket, OkPacket, RowDataPacket, createConnection } from 'mysql2/promise';
 import { query } from '../src/mysql';
-import { ConnectionData, RequestType } from '../src/models/statement';
-import { QueryResponse, KeyValue } from '../src/models/statement';
+import { ConnectionData, RequestType } from '../src/models/sql';
+import { ObjectOfPrimitives } from '../src/models/common';
+import { QueryResponse } from '../src/models/responses';
 import utils from '../src/utils';
 
 const host: string = 'localhost'; // Replace with the server address
@@ -56,7 +57,7 @@ const mockFactory = (() => {
 		});
 	}
 
-	function createRowDataPacket(properties: KeyValue): RowDataPacket {
+	function createRowDataPacket(properties: ObjectOfPrimitives): RowDataPacket {
 		const obj = Object.create({
 			constructor: {
 				name: 'RowDataPacket',

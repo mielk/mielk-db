@@ -1,5 +1,8 @@
-import { FieldPacket, OkPacket, ResultSetHeader, RowDataPacket, createConnection } from 'mysql2/promise';
-import { ConnectionData, DbField, QueryResponse, KeyValue } from './models/statement';
+import { FieldPacket, QueryResult, ResultSetHeader, createConnection } from 'mysql2/promise';
+import { ConnectionData } from './models/sql';
+import { DbField } from './models/fields';
+import { QueryResponse } from './models/responses';
+import { ObjectOfPrimitives } from './models/common';
 
 const query = async (config: ConnectionData, sql: string): Promise<QueryResponse> => {
 	const connection = await createConnection(config);
@@ -8,17 +11,13 @@ const query = async (config: ConnectionData, sql: string): Promise<QueryResponse
 	return result;
 };
 
-const createQueryResponse = (
-	data: RowDataPacket[][] | RowDataPacket[] | OkPacket | OkPacket[] | ResultSetHeader,
-	fieldPackets: FieldPacket[]
-): QueryResponse => {
+const createQueryResponse = (data: QueryResult, fieldPackets: FieldPacket[]): QueryResponse => {
 	const fields = createFieldsArray(fieldPackets);
-	console.log(data);
 	if (Array.isArray(data)) {
 		if (data.length === 0) {
 			return { items: [], rows: 0, insertId: 0, fields };
 		} else {
-			return { items: data as KeyValue[], rows: data.length, insertId: 0, fields };
+			return { items: data as ObjectOfPrimitives[], rows: data.length, insertId: 0, fields };
 		}
 	} else if (isResultSetHeader(data)) {
 		return { items: [], rows: data.affectedRows, insertId: data.insertId, fields };

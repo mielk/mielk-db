@@ -1,8 +1,8 @@
-import { RequestType } from './models/statement';
+import { RequestType } from './models/sql';
 
 const getRequestTypeFromSql = (sql: string): RequestType => {
 	for (const requestType of Object.values(RequestType)) {
-		if (requestType.length && sql.toUpperCase().includes(requestType)) return requestType;
+		if (requestType.length && sql.toUpperCase().trim().startsWith(requestType)) return requestType;
 	}
 	return RequestType.Unknown;
 };
