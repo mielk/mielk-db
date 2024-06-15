@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Helpful utils for MySQL operations.",
   "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "type": "module",
   "scripts": {
     "prepublishOnly": "npm test",
