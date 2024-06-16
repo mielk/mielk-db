@@ -1,13 +1,21 @@
 export default {
-	roots: ['<rootDir>/tests'], // Specify the root directory for Jest to look for tests
+	preset: 'ts-jest',
+	testEnvironment: 'node',
+	// roots: ['<rootDir>/tests'], // Specify the root directory for Jest to look for tests
 	transform: {
-		'^.+\\.tsx?$': 'ts-jest', // Transform TypeScript files using ts-jest
+		'^.+\\.(ts|tsx)$': 'ts-jest',
+		'^.+\\.(js|jsx|mjs)$': 'babel-jest',
 	},
-	testMatch: [
-		'**/?(*.)+(spec|test).ts?(x)', // Match test files with .spec.ts or .test.ts extensions
-	],
+	globals: {
+		'ts-jest': {
+			tsconfig: '<rootDir>/tsconfig.json',
+		},
+	},
+	// testMatch: [
+	// 	'**/?(*.)+(spec|test).[jt]s?(x)', // Match test files with .spec.ts or .test.ts extensions
+	// ],
 	moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'], // File extensions for modules
-	transformIgnorePatterns: ['/node_modules/(?!mielk-fn|mielk-db)'],
+	transformIgnorePatterns: ['/node_modules/(?!mielk-fn|mielk-db).+\\.js$'],
 	reporters: [
 		'default',
 		[
