@@ -1,10 +1,12 @@
-import { IFieldsManager } from '../models/fields';
+import { DbStructure, IFieldsManager } from '../models/fields';
 import { ConnectionData, OrderRule } from '../models/sql';
-import { MySqlResponse } from '../models/responses';
+import { MySqlResponse, QueryResponse } from '../models/responses';
 import { WhereCondition, WhereOperator } from '../models/sql';
 import { query } from '../mysql';
 import sqlBuilder from '../sqlBuilder';
-import { FieldsMap } from '../models/fields';
+import { DbFieldsMap } from '../models/fields';
+import FieldsManagerFactory from '../factories/FieldsManagerFactory';
+import { DbRecord, DbRecordSet } from '../models/records';
 
 export class Select {
 	private _connectionData: ConnectionData;
@@ -16,9 +18,9 @@ export class Select {
 	private _order: OrderRule[] = [];
 	//--------------------------------------
 
-	constructor(connectionData: ConnectionData, fieldsManager?: IFieldsManager) {
+	constructor(connectionData: ConnectionData, dbStructure?: DbStructure) {
 		this._connectionData = connectionData;
-		if (fieldsManager) this._fieldsManager = fieldsManager;
+		if (dbStructure) this._fieldsManager = FieldsManagerFactory.create(dbStructure);
 	}
 
 	/* Only for testing purposes */
@@ -50,45 +52,55 @@ export class Select {
 		return this;
 	}
 
-	/* Appends the given field to this objects' private array of fields and returns the object itself. */
-	field(value: string): Select {
-		const _value = value.trim().toLowerCase();
-		if (!_value.length) {
-			// skip - empty field name
-		} else if (this._fields.includes(_value)) {
-			// skip - such field is already appended
-		} else {
-			this._fields.push(_value);
-		}
+	/* Appends the given WhereCondition object to this objects' private array of WhereConditions and returns the object itself. */
+	conditions(...conditions: (WhereCondition | WhereCondition[])[]): Select {
+		const flat: WhereCondition[] = [...conditions].flat();
+		this._where.push(...flat);
 		return this;
 	}
 
-	/* Appends the given array of fields to this objects' private array of fields and returns the object itself. */
-	fields(...value: (string | string[])[]): Select {
-		// const _value = value.trim().toLowerCase();
-		// if (!_value.length) {
-		// 	// skip - empty field name
-		// } else if (this._fields.includes(_value)) {
-		// 	// skip - such field is already appended
-		// } else {
-		// 	this._fields.push(_value);
-		// }
+	/* Appends the given field to this objects' private array of fields and returns the object itself. */
+	fields(...items: (string | string[])[]): Select {
+		const flat: string[] = [...items].flat();
+		flat.forEach((item) => {
+			const trimmed = item.trim();
+			if (trimmed.length && this._fields.every((a) => a.toLowerCase() !== trimmed.toLowerCase())) {
+				this._fields.push(trimmed);
+			}
+		});
+		return this;
+	}
+
+	/* Appends the given field to this objects' private array of fields and returns the object itself. */
+	order(...orders: (OrderRule | OrderRule[])[]): Select {
+		const flat: OrderRule[] = [...orders].flat();
+		this._order.push(...flat);
 		return this;
 	}
 
 	execute = async (): Promise<MySqlResponse> => {
 		this.validate();
 
-		const fieldsMap: FieldsMap = this._fieldsManager?.getPropertyToDbFieldMap(this._from) || {};
-		let sql = '';
-		sql = sqlBuilder.getSelect(this._fields, this._from, this._where, this._order, fieldsMap);
-		const result = await query(this._connectionData, sql);
+		const fieldsMap: DbFieldsMap = this._fieldsManager?.getFieldsMap(this._from) || {};
+		const sql: string = sqlBuilder.getSelect(this._fields, this._from, this._where, this._order, fieldsMap);
 
-		return {
-			status: false,
-			rows: result.rows,
-			items: [],
-		};
+		try {
+			const result: QueryResponse = await query(this._connectionData, sql);
+			const items: DbRecordSet = this._fieldsManager
+				? this._fieldsManager.convertRecordset(this._from, result.items)
+				: result.items;
+			return {
+				status: true,
+				rows: result.rows,
+				items,
+			};
+		} catch (err) {
+			const message: string = err instanceof Error ? err.message : 'An unknown error occurred';
+			return {
+				status: false,
+				message,
+			};
+		}
 	};
 
 	private validate = (): void => {
