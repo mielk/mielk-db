@@ -1,3 +1,5 @@
+import { ObjectOfPrimitives } from '../src/models/common';
+import { DbFieldsMap } from '../src/models/fields';
 import { WhereOperator, WhereCondition } from '../src/models/sql';
 import builder from '../src/sqlBuilder';
 
@@ -255,65 +257,65 @@ describe('getSelect', () => {
 	});
 
 	test('should correctly build a query with a LIKE in WHERE clause', () => {
-		const select = ['name'];
-		const from = 'users';
-		const where = [{ field: 'name', operator: WhereOperator.Like, value: '%John%' }];
-		const sql = builder.getSelect(select, from, where);
+		const select: string[] = ['name'];
+		const from: string = 'users';
+		const where: WhereCondition[] = [{ field: 'name', operator: WhereOperator.Like, value: '%John%' }];
+		const sql: string = builder.getSelect(select, from, where);
 		expect(sql).toEqual("SELECT name FROM users WHERE name LIKE '%John%'");
 	});
 
 	test('should correctly build a query with a NOT LIKE in WHERE clause', () => {
-		const select = ['name'];
-		const from = 'users';
-		const where = [{ field: 'name', operator: WhereOperator.NotLike, value: '%John%' }];
+		const select: string[] = ['name'];
+		const from: string = 'users';
+		const where: WhereCondition[] = [{ field: 'name', operator: WhereOperator.NotLike, value: '%John%' }];
 		const sql = builder.getSelect(select, from, where);
 		expect(sql).toEqual("SELECT name FROM users WHERE name NOT LIKE '%John%'");
 	});
 
 	test('should correctly build a query with a NOT IN in WHERE clause', () => {
-		const select = ['name'];
-		const from = 'users';
-		const where = [{ field: 'id', operator: WhereOperator.NotIn, value: [1, 2, 3] }];
+		const select: string[] = ['name'];
+		const from: string = 'users';
+		const where: WhereCondition[] = [{ field: 'id', operator: WhereOperator.NotIn, value: [1, 2, 3] }];
 		const sql = builder.getSelect(select, from, where);
 		expect(sql).toEqual('SELECT name FROM users WHERE id NOT IN (1, 2, 3)');
 	});
 
 	test('should correctly build a query with a not equal in WHERE clause', () => {
-		const select = ['name'];
-		const from = 'users';
-		const where = [{ field: 'id', operator: WhereOperator.NotEqual, value: 1 }];
+		const select: string[] = ['name'];
+		const from: string = 'users';
+		const where: WhereCondition[] = [{ field: 'id', operator: WhereOperator.NotEqual, value: 1 }];
 		const sql = builder.getSelect(select, from, where);
 		expect(sql).toEqual('SELECT name FROM users WHERE id <> 1');
 	});
 
 	test('should correctly build a query with a null as a value in WhereCondition and Equal operator', () => {
-		const select = ['name'];
-		const from = 'users';
-		const where = [{ field: 'name', operator: WhereOperator.Equal, value: null }];
+		const select: string[] = ['name'];
+		const from: string = 'users';
+		const where: WhereCondition[] = [{ field: 'name', operator: WhereOperator.Equal, value: null }];
 		const sql = builder.getSelect(select, from, where);
 		expect(sql).toEqual('SELECT name FROM users WHERE name IS NULL');
 	});
 
 	test('should correctly build a query with a null as a value in WhereCondition and NotEqual operator', () => {
-		const select = ['name'];
-		const from = 'users';
-		const where = [{ field: 'name', operator: WhereOperator.NotEqual, value: null }];
+		const select: string[] = ['name'];
+		const from: string = 'users';
+		const where: WhereCondition[] = [{ field: 'name', operator: WhereOperator.NotEqual, value: null }];
 		const sql = builder.getSelect(select, from, where);
 		expect(sql).toEqual('SELECT name FROM users WHERE name IS NOT NULL');
 	});
 
 	test('should correctly build a query with true as a value in WhereCondition', () => {
-		const select = ['name'];
-		const from = 'users';
-		const where = [{ field: 'is_active', operator: WhereOperator.Equal, value: true }];
+		const select: string[] = ['name'];
+		const from: string = 'users';
+		const where: WhereCondition[] = [{ field: 'is_active', operator: WhereOperator.Equal, value: true }];
 		const sql = builder.getSelect(select, from, where);
 		expect(sql).toEqual('SELECT name FROM users WHERE is_active = 1');
 	});
 
 	test('should correctly build a query with false as a value in WhereCondition', () => {
-		const select = ['name'];
-		const from = 'users';
-		const where = [{ field: 'is_active', operator: WhereOperator.Equal, value: false }];
+		const select: string[] = ['name'];
+		const from: string = 'users';
+		const where: WhereCondition[] = [{ field: 'is_active', operator: WhereOperator.Equal, value: false }];
 		const sql = builder.getSelect(select, from, where);
 		expect(sql).toEqual('SELECT name FROM users WHERE is_active = 0');
 	});
@@ -368,22 +370,22 @@ describe('getInsert', () => {
 
 describe('getUpdate', () => {
 	test('should throw an error if table name is empty', () => {
-		expect(() => builder.getUpdate('', { name: 'John', age: 42 }, 1)).toThrowError(
+		expect(() => builder.getUpdate('', { name: 'John', age: 42 }, 1)).toThrow(
 			'Parameter [table] must be a non-empty string'
 		);
 	});
 	test('should throw an error if table name is undefined', () => {
-		expect(() => builder.getUpdate(undefined as unknown as string, { name: 'John', age: 42 }, 1)).toThrowError(
+		expect(() => builder.getUpdate(undefined as unknown as string, { name: 'John', age: 42 }, 1)).toThrow(
 			'Parameter [table] must be a non-empty string'
 		);
 	});
 	test('should throw an error if object is empty', () => {
-		expect(() => builder.getUpdate('users', {}, 1)).toThrowError(
+		expect(() => builder.getUpdate('users', {}, 1)).toThrow(
 			'Parameter [object] must be an object with at least one property'
 		);
 	});
 	test('should throw an error if object is not of object type', () => {
-		expect(() => builder.getUpdate('users', 'John' as unknown as { [key: string]: string | number }, 1)).toThrowError(
+		expect(() => builder.getUpdate('users', 'John' as unknown as { [key: string]: string | number }, 1)).toThrow(
 			'Parameter [object] must be an object with at least one property'
 		);
 	});
@@ -392,7 +394,7 @@ describe('getUpdate', () => {
 		expect(result).toEqual("UPDATE users SET name = 'John', age = 42 WHERE id = 1");
 	});
 	test('should use the fieldsMap for property names if provided', () => {
-		const result = builder.getUpdate('users', { name: 'John', age: 42 }, 1, {
+		const result: string = builder.getUpdate('users', { name: 'John', age: 42 }, 1, {
 			name: 'user_name',
 			age: 'user_age',
 			id: 'user_id',
@@ -400,7 +402,7 @@ describe('getUpdate', () => {
 		expect(result).toEqual("UPDATE users SET user_name = 'John', user_age = 42 WHERE user_id = 1");
 	});
 	test('should use the original property names for those not found in fieldsMap', () => {
-		const result = builder.getUpdate('users', { name: 'John', age: 42, gender: 'male' }, 1, {
+		const result: string = builder.getUpdate('users', { name: 'John', age: 42, gender: 'male' }, 1, {
 			name: 'user_name',
 			age: 'user_age',
 		});
@@ -408,59 +410,59 @@ describe('getUpdate', () => {
 	});
 
 	test('should handle complex conditions in the where array', () => {
-		const obj = { name: 'John', age: 42 };
-		const where = [
+		const obj: ObjectOfPrimitives = { name: 'John', age: 42 };
+		const where: WhereCondition[] = [
 			{ field: 'name', operator: WhereOperator.Equal, value: 'John' },
 			{ field: 'age', operator: WhereOperator.LessThan, value: 30 },
 		];
-		const result = builder.getUpdate('users', obj, where, { name: 'user_name', age: 'user_age' });
+		const result: string = builder.getUpdate('users', obj, where, { name: 'user_name', age: 'user_age' });
 		expect(result).toBe("UPDATE users SET user_name = 'John', user_age = 42 WHERE user_name = 'John' AND user_age < 30");
 	});
 
 	test('should correctly build a query with a greater than WHERE clause', () => {
-		const obj = { name: 'John', age: 42 };
+		const obj: ObjectOfPrimitives = { name: 'John', age: 42 };
 		expect(builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.GreaterThan, value: 1 }])).toBe(
 			"UPDATE users SET name = 'John', age = 42 WHERE id > 1"
 		);
 	});
 
 	test('should correctly build a query with a less than WHERE clause', () => {
-		const obj = { name: 'John', age: 42 };
+		const obj: ObjectOfPrimitives = { name: 'John', age: 42 };
 		expect(builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.LessThan, value: 1 }])).toBe(
 			"UPDATE users SET name = 'John', age = 42 WHERE id < 1"
 		);
 	});
 
 	test('should correctly build a query with a greater equal than WHERE clause', () => {
-		const obj = { name: 'John', age: 42 };
+		const obj: ObjectOfPrimitives = { name: 'John', age: 42 };
 		expect(builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.GreaterEqualThan, value: 1 }])).toBe(
 			"UPDATE users SET name = 'John', age = 42 WHERE id >= 1"
 		);
 	});
 
 	test('should correctly build a query with a less equal than WHERE clause', () => {
-		const obj = { name: 'John', age: 42 };
+		const obj: ObjectOfPrimitives = { name: 'John', age: 42 };
 		expect(builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.LessEqualThan, value: 1 }])).toBe(
 			"UPDATE users SET name = 'John', age = 42 WHERE id <= 1"
 		);
 	});
 
 	test('should correctly build a query with an IN clause and a single value', () => {
-		const obj = { name: 'John', age: 42 };
+		const obj: ObjectOfPrimitives = { name: 'John', age: 42 };
 		expect(builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.In, value: 1 }])).toBe(
 			"UPDATE users SET name = 'John', age = 42 WHERE id IN (1)"
 		);
 	});
 
 	test('should correctly build a query with an IN clause and an array of values', () => {
-		const obj = { name: 'John', age: 42 };
+		const obj: ObjectOfPrimitives = { name: 'John', age: 42 };
 		expect(builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.In, value: [1, 2, 3] }])).toBe(
 			"UPDATE users SET name = 'John', age = 42 WHERE id IN (1, 2, 3)"
 		);
 	});
 
 	test('should throw an error if IN operator is used but value is not a primitive or array of primitives', () => {
-		const obj = { name: 'John', age: 42 };
+		const obj: ObjectOfPrimitives = { name: 'John', age: 42 };
 		expect(() => {
 			const value = {} as unknown as string | number | boolean | null;
 			builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.In, value: value }]);
@@ -468,7 +470,7 @@ describe('getUpdate', () => {
 	});
 
 	test('should correctly handle multiple IN clauses', () => {
-		const obj = { name: 'John', age: 42 };
+		const obj: ObjectOfPrimitives = { name: 'John', age: 42 };
 		expect(
 			builder.getUpdate('users', obj, [
 				{ field: 'id', operator: WhereOperator.In, value: [1, 2, 3] },
@@ -478,42 +480,42 @@ describe('getUpdate', () => {
 	});
 
 	test('should correctly handle IN clause with null', () => {
-		const obj = { name: 'John', age: 42 };
+		const obj: ObjectOfPrimitives = { name: 'John', age: 42 };
 		expect(builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.In, value: null }])).toBe(
 			"UPDATE users SET name = 'John', age = 42 WHERE id IS NULL"
 		);
 	});
 
 	test('should correctly handle IN clause with array with duplicates', () => {
-		const obj = { name: 'John', age: 42 };
+		const obj: ObjectOfPrimitives = { name: 'John', age: 42 };
 		expect(builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.In, value: [1, 1, 2] }])).toBe(
 			"UPDATE users SET name = 'John', age = 42 WHERE id IN (1, 2)"
 		);
 	});
 
 	test('should correctly handle IN clause with array with null', () => {
-		const obj = { name: 'John', age: 42 };
+		const obj: ObjectOfPrimitives = { name: 'John', age: 42 };
 		expect(builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.In, value: [1, 1, 2, null] }])).toBe(
 			"UPDATE users SET name = 'John', age = 42 WHERE (id IN (1, 2) OR id IS NULL)"
 		);
 	});
 
 	test('should correctly handle NOT IN clause with array with null', () => {
-		const obj = { name: 'John', age: 42 };
+		const obj: ObjectOfPrimitives = { name: 'John', age: 42 };
 		expect(
 			builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.NotIn, value: [1, 1, 2, null] }])
 		).toBe("UPDATE users SET name = 'John', age = 42 WHERE (id NOT IN (1, 2) OR id IS NOT NULL)");
 	});
 
 	test('should throw an error if an IN clause is used but value is empty array', () => {
-		const obj = { name: 'John', age: 42 };
+		const obj: ObjectOfPrimitives = { name: 'John', age: 42 };
 		expect(() => {
 			builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.In, value: [] }]);
 		}).toThrow('Invalid data type of [value]. Expected primitive or array of primitives');
 	});
 
 	test('should throw an error if IN operator is used and value is an array with non-primitives', () => {
-		const obj = { name: 'John', age: 42 };
+		const obj: ObjectOfPrimitives = { name: 'John', age: 42 };
 		expect(() => {
 			const value = [1, 'two', { three: 3 }] as unknown as string | number | boolean | null;
 			builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.In, value: value }]);
@@ -525,61 +527,61 @@ describe('getDelete', () => {
 	test('should throw an error if table name is empty', () => {
 		expect(() => {
 			builder.getDelete('', []);
-		}).toThrowError(new Error('Parameter [table] must be a non-empty string'));
+		}).toThrow(new Error('Parameter [table] must be a non-empty string'));
 	});
 
 	test('should throw an error if table name is undefined', () => {
 		expect(() => {
 			builder.getDelete(undefined as unknown as string, []);
-		}).toThrowError(new Error('Parameter [table] must be a non-empty string'));
+		}).toThrow(new Error('Parameter [table] must be a non-empty string'));
 	});
 
 	test('should throw an error if where array is empty', () => {
 		expect(() => {
 			builder.getDelete('users', []);
-		}).toThrowError(new Error('Parameter [where] must be an array with at least one WhereCondition object'));
+		}).toThrow(new Error('Parameter [where] must be an array with at least one WhereCondition object'));
 	});
 
 	test('should throw an error if null is provided as where array', () => {
-		expect(() => builder.getDelete('users', null as unknown as WhereCondition[], {})).toThrowError(
+		expect(() => builder.getDelete('users', null as unknown as WhereCondition[], {})).toThrow(
 			'Parameter [where] must be an array with at least one WhereCondition object'
 		);
 	});
 
 	test('should throw an error if undefined is provided as where array', () => {
-		expect(() => builder.getDelete('users', undefined as unknown as WhereCondition[], {})).toThrowError(
+		expect(() => builder.getDelete('users', undefined as unknown as WhereCondition[], {})).toThrow(
 			'Parameter [where] must be an array with at least one WhereCondition object'
 		);
 	});
 
 	test('should return valid SQL command for provided numeric id', () => {
-		const result = builder.getDelete('users', 5);
+		const result: string = builder.getDelete('users', 5);
 		expect(result).toEqual('DELETE FROM users WHERE id = 5');
 	});
 
 	test('should return valid SQL command for provided text id', () => {
-		const result = builder.getDelete('users', 'id');
+		const result: string = builder.getDelete('users', 'id');
 		expect(result).toEqual("DELETE FROM users WHERE id = 'id'");
 	});
 
 	test('should return correct DELETE command when fieldsMap is not provided', () => {
-		const where = [{ field: 'name', operator: WhereOperator.Equal, value: 'John' }];
-		const result = builder.getDelete('users', where);
+		const where: WhereCondition[] = [{ field: 'name', operator: WhereOperator.Equal, value: 'John' }];
+		const result: string = builder.getDelete('users', where);
 		expect(result).toBe("DELETE FROM users WHERE name = 'John'");
 	});
 
 	test('should return correct DELETE command when fieldsMap is provided', () => {
-		const where = [{ field: 'age', operator: WhereOperator.GreaterThan, value: 30 }];
-		const result = builder.getDelete('users', where, { age: 'user_age' });
+		const where: WhereCondition[] = [{ field: 'age', operator: WhereOperator.GreaterThan, value: 30 }];
+		const result: string = builder.getDelete('users', where, { age: 'user_age' });
 		expect(result).toBe('DELETE FROM users WHERE user_age > 30');
 	});
 
 	test('should handle complex conditions in the where array', () => {
-		const where = [
+		const where: WhereCondition[] = [
 			{ field: 'name', operator: WhereOperator.Equal, value: 'John' },
 			{ field: 'age', operator: WhereOperator.LessThan, value: 30 },
 		];
-		const result = builder.getDelete('users', where, { name: 'user_name', age: 'user_age' });
+		const result: string = builder.getDelete('users', where, { name: 'user_name', age: 'user_age' });
 		expect(result).toBe("DELETE FROM users WHERE user_name = 'John' AND user_age < 30");
 	});
 
@@ -675,62 +677,62 @@ describe('getDelete', () => {
 
 describe('getDeactivate', () => {
 	test('should throw an error if table name is not a string', () => {
-		expect(() => builder.getDeactivate(123 as unknown as string, [], {})).toThrowError(
+		expect(() => builder.getDeactivate(123 as unknown as string, [], {})).toThrow(
 			'Parameter [table] must be a non-empty string'
 		);
 	});
 
 	test('should throw an error if table name is empty', () => {
-		expect(() => builder.getDeactivate('', [], {})).toThrowError('Parameter [table] must be a non-empty string');
+		expect(() => builder.getDeactivate('', [], {})).toThrow('Parameter [table] must be a non-empty string');
 	});
 
 	test('should throw an error if undefined is provided as where array', () => {
-		expect(() => builder.getDeactivate('users', undefined as unknown as WhereCondition[], {})).toThrowError(
+		expect(() => builder.getDeactivate('users', undefined as unknown as WhereCondition[], {})).toThrow(
 			'Parameter [where] must be an array with at least one WhereCondition object'
 		);
 	});
 
 	test('should throw an error if null is provided as where array', () => {
-		expect(() => builder.getDeactivate('users', null as unknown as WhereCondition[], {})).toThrowError(
+		expect(() => builder.getDeactivate('users', null as unknown as WhereCondition[], {})).toThrow(
 			'Parameter [where] must be an array with at least one WhereCondition object'
 		);
 	});
 
 	test('should throw an error if where array is empty', () => {
-		expect(() => builder.getDeactivate('users', [], {})).toThrowError(
+		expect(() => builder.getDeactivate('users', [], {})).toThrow(
 			'Parameter [where] must be an array with at least one WhereCondition object'
 		);
 	});
 
 	test('should return valid SQL command for provided numeric id', () => {
-		const result = builder.getDeactivate('users', 5);
+		const result: string = builder.getDeactivate('users', 5);
 		expect(result).toEqual('UPDATE users SET is_active = 0 WHERE id = 5');
 	});
 
 	test('should return valid SQL command for provided text id', () => {
-		const result = builder.getDeactivate('users', 'id');
+		const result: string = builder.getDeactivate('users', 'id');
 		expect(result).toEqual("UPDATE users SET is_active = 0 WHERE id = 'id'");
 	});
 
 	test('should return valid SQL command for provided input parameters', () => {
-		const where = [{ field: 'id', operator: WhereOperator.Equal, value: 1 }];
-		const result = builder.getDeactivate('users', where);
+		const where: WhereCondition[] = [{ field: 'id', operator: WhereOperator.Equal, value: 1 }];
+		const result: string = builder.getDeactivate('users', where);
 		expect(result).toEqual('UPDATE users SET is_active = 0 WHERE id = 1');
 	});
 
 	test('should correctly replace field names based on fieldsMap', () => {
-		const where = [{ field: 'id', operator: WhereOperator.Equal, value: 1 }];
-		const fieldsMap = { id: 'user_id', isActive: 'active' };
-		const result = builder.getDeactivate('users', where, fieldsMap);
+		const where: WhereCondition[] = [{ field: 'id', operator: WhereOperator.Equal, value: 1 }];
+		const fieldsMap: DbFieldsMap = { id: 'user_id', isActive: 'active' };
+		const result: string = builder.getDeactivate('users', where, fieldsMap);
 		expect(result).toEqual('UPDATE users SET active = 0 WHERE user_id = 1');
 	});
 
 	test('should handle complex conditions in the where array', () => {
-		const where = [
+		const where: WhereCondition[] = [
 			{ field: 'name', operator: WhereOperator.Equal, value: 'John' },
 			{ field: 'age', operator: WhereOperator.LessThan, value: 30 },
 		];
-		const result = builder.getDeactivate('users', where, { name: 'user_name', age: 'user_age' });
+		const result: string = builder.getDeactivate('users', where, { name: 'user_name', age: 'user_age' });
 		expect(result).toBe("UPDATE users SET is_active = 0 WHERE user_name = 'John' AND user_age < 30");
 	});
 

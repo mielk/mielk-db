@@ -1,7 +1,8 @@
 import { DbField } from './fields';
 
 export interface DbRecord {
-	[key: string]: string | number | boolean | null | DbRecord | DbRecord[];
+	// [key: string]: string | number | boolean | null | DbRecord | DbRecord[];
+	[key: string]: string | number | boolean | null;
 }
 
 export type DbRecordSet = DbRecord[];

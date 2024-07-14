@@ -1,6 +1,7 @@
 import { escape } from 'mysql2/promise';
 import { WhereCondition, OrderRule, WhereOperator } from './models/sql';
 import { strings, objects, variables } from 'mielk-fn';
+import { ObjectOfPrimitives } from './models/common';
 
 const defaultIsActiveField = 'is_active';
 
@@ -75,13 +76,13 @@ function getUpdate(
 
 function getUpdate(
 	table: string,
-	object: { [key: string]: string | number | boolean | null },
+	object: ObjectOfPrimitives,
 	where: WhereCondition[],
 	fieldsMap?: { [key: string]: string }
 ): string;
 function getUpdate(
 	table: string,
-	object: { [key: string]: string | number | boolean | null },
+	object: ObjectOfPrimitives,
 	idOrWhere: string | number | WhereCondition[],
 	fieldsMap: { [key: string]: string } = {}
 ): string {
@@ -103,13 +104,13 @@ function getDelete(table: string, id: string | number, fieldsMap?: { [key: strin
 function getDelete(table: string, where: WhereCondition[], fieldsMap?: { [key: string]: string }): string;
 function getDelete(
 	table: string,
-	arg2: string | number | WhereCondition[] = [],
+	where2: string | number | WhereCondition[] = [],
 	fieldsMap: { [key: string]: string } = {}
 ): string {
 	throwError.ifEmptyTableProcName(table, 'table');
-	const where: WhereCondition[] = variables.isPrimitive(arg2, false)
-		? [{ field: 'id', operator: WhereOperator.Equal, value: arg2 as string | number }]
-		: (arg2 as WhereCondition[]);
+	const where: WhereCondition[] = variables.isPrimitive(where2, false)
+		? [{ field: 'id', operator: WhereOperator.Equal, value: where2 as string | number }]
+		: (where2 as WhereCondition[]);
 	throwError.ifNotNonEmptyArrayOfWhereConditions(where, 'where');
 	_fieldsMap = fieldsMap;
 
@@ -121,13 +122,13 @@ function getDeactivate(table: string, id: string | number, fieldsMap?: { [key: s
 function getDeactivate(table: string, where: WhereCondition[], fieldsMap?: { [key: string]: string }): string;
 function getDeactivate(
 	table: string,
-	arg2: string | number | WhereCondition[] = [],
+	where2: string | number | WhereCondition[] = [],
 	fieldsMap: { [key: string]: string } = {}
 ): string {
 	throwError.ifEmptyTableProcName(table, 'table');
-	const where: WhereCondition[] = variables.isPrimitive(arg2, false)
-		? [{ field: 'id', operator: WhereOperator.Equal, value: arg2 as string | number }]
-		: (arg2 as WhereCondition[]);
+	const where: WhereCondition[] = variables.isPrimitive(where2, false)
+		? [{ field: 'id', operator: WhereOperator.Equal, value: where2 as string | number }]
+		: (where2 as WhereCondition[]);
 	throwError.ifNotNonEmptyArrayOfWhereConditions(where, 'where');
 	_fieldsMap = fieldsMap;
 

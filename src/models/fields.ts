@@ -1,26 +1,29 @@
 import { DbRecordSet, MultiRecordSet } from './records';
 
-export interface IFieldsManager {
-	getPropertyToDbFieldMap: (tableName: string) => Record<string, string>;
-	convertMultiRecordset: (multiRs: MultiRecordSet) => MultiRecordSet;
-	convertRecordset: (tableName: string, recordset: DbRecordSet) => DbRecordSet;
-}
+export type DbStructure = Record<string, DbTable>;
 
-export interface FieldsSet {
+export interface DbTable {
+	tableName: string;
 	key: string;
-	propertyToField: Record<string, string>;
-	dependencies: Record<string, string>;
+	fieldsMap: DbFieldsMap;
+	foreignKeys?: DbForeignKey[];
 }
 
-export interface DbTableDependency {
+export type DbFieldsMap = Record<string, string>;
+
+export interface DbForeignKey {
 	field: string;
-	relatedTable: string;
-	relatedField: string;
+	table: string;
 }
-
-export type FieldsMap = Record<string, string>;
 
 export interface DbField {
 	name: string;
 	type?: number;
+}
+
+export interface IFieldsManager {
+	getFieldsMap: (name: string) => Record<string, string> | null;
+	getFieldName: (name: string, property: string) => string | null;
+	// convertRecordset: (tableName: string, recordset: DbRecordSet) => DbRecordSet;
+	// convertMultiRecordset: (multiRs: MultiRecordSet) => MultiRecordSet;
 }

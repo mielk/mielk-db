@@ -10,7 +10,7 @@ const database: string = 'mydatabase'; // Replace with the database name
 const username: string = 'myusername'; // Replace with the username
 const password: string = 'mypassword'; // Replace with the password
 
-const invalidSql = 'SELECT * FROM non-existing table';
+const invalidSql: string = 'SELECT * FROM non-existing table';
 const config: ConnectionData = {
 	host: host,
 	database: database,
@@ -209,6 +209,10 @@ describe('query', () => {
 		expect(connection.execute).toHaveBeenCalledTimes(1);
 		expect(connection.execute).toHaveBeenCalledWith(invalidSql);
 	});
+
+	// it('should handle procedures with a single recordset as an output', async () => {});
+
+	// it('should handle procedures with a multiple recordsets as an output', async () => {});
 
 	// it('should handle asynchronous behavior correctly', async () => {});
 

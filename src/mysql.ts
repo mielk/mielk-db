@@ -3,16 +3,17 @@ import { ConnectionData } from './models/sql';
 import { DbField } from './models/fields';
 import { QueryResponse } from './models/responses';
 import { ObjectOfPrimitives } from './models/common';
+import { Connection } from 'mysql2/typings/mysql/lib/Connection';
 
 const query = async (config: ConnectionData, sql: string): Promise<QueryResponse> => {
 	const connection = await createConnection(config);
 	const [data, fields] = await connection.execute(sql);
-	const result = createQueryResponse(data, fields);
+	const result: QueryResponse = createQueryResponse(data, fields);
 	return result;
 };
 
 const createQueryResponse = (data: QueryResult, fieldPackets: FieldPacket[]): QueryResponse => {
-	const fields = createFieldsArray(fieldPackets);
+	const fields: DbField[] = createFieldsArray(fieldPackets);
 	if (Array.isArray(data)) {
 		if (data.length === 0) {
 			return { items: [], rows: 0, insertId: 0, fields };
