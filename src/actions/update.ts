@@ -1,28 +1,30 @@
-import { IFieldsManager } from '../models/fields';
+import { DbStructure, IFieldsManager } from '../models/fields';
 import { ConnectionData } from '../models/sql';
 import { MySqlResponse } from '../models/responses';
 import { WhereCondition, WhereOperator } from '../models/sql';
 import { query } from '../mysql';
 import sqlBuilder from '../sqlBuilder';
-import { FieldsMap } from '../models/fields';
+import { DbFieldsMap } from '../models/fields';
+import FieldsManagerFactory from '../factories/FieldsManagerFactory';
+import { FieldsManager } from '../fieldsManager';
 
 export class Update {
+	private _connectionData: ConnectionData;
+	private _fieldsManager?: IFieldsManager;
+	//--------------------------------------
 	private _from: string = '';
 	private _where: WhereCondition[] = [];
-	private _id: string | number = 0;
 	private _object: { [key: string]: string | number | boolean | null } = {};
-	private _fieldsManager?: IFieldsManager;
-	private _connectionData: ConnectionData;
+	//--------------------------------------
 
-	constructor(connectionData: ConnectionData, fieldsManager?: IFieldsManager) {
+	constructor(connectionData: ConnectionData, dbStructure?: DbStructure) {
 		this._connectionData = connectionData;
-		if (fieldsManager) this._fieldsManager = fieldsManager;
+		if (dbStructure) this._fieldsManager = FieldsManagerFactory.create(dbStructure);
 	}
 
 	___props(): { [key: string]: any } {
 		return {
 			from: this._from,
-			id: this._id,
 			where: this._where,
 			object: this._object,
 			fieldsManager: this._fieldsManager,
@@ -45,13 +47,6 @@ export class Update {
 		return this;
 	}
 
-	whereId(id: string | number): Update {
-		if (typeof id === 'number' && id <= 0) throw new Error('Id must be greater than 0');
-		if (id === '') throw new Error('Id cannot be empty string');
-		this._id = id;
-		return this;
-	}
-
 	object(object: { [key: string]: string | number | boolean | null }): Update {
 		if (Object.keys(object).length === 0) throw new Error('Object cannot be empty');
 		this._object = object;
@@ -61,13 +56,8 @@ export class Update {
 	execute = async (): Promise<MySqlResponse> => {
 		this.validate();
 
-		const fieldsMap: FieldsMap = this._fieldsManager?.getPropertyToDbFieldMap(this._from) || {};
-		let sql = '';
-		if (this._id) {
-			sql = sqlBuilder.getUpdate(this._from, this._object, this._id, fieldsMap);
-		} else {
-			sql = sqlBuilder.getUpdate(this._from, this._object, this._where, fieldsMap);
-		}
+		const fieldsMap: DbFieldsMap = this._fieldsManager?.getFieldsMap(this._from) || {};
+		const sql: string = sqlBuilder.getUpdate(this._from, this._object, this._where, fieldsMap);
 		const result = await query(this._connectionData, sql);
 
 		return {
@@ -79,7 +69,7 @@ export class Update {
 
 	private validate = (): void => {
 		if (!this._from) throw new Error('UPDATE cannot be executed if [tableName] has not been set');
-		if (!this._id && this._where.length === 0) throw new Error('UPDATE cannot be executed without any condition');
+		if (this._where.length === 0) throw new Error('UPDATE cannot be executed without any condition');
 		if (Object.keys(this._object || {}).length === 0)
 			throw new Error('UPDATE cannot be executed if [object] has not been set');
 	};
