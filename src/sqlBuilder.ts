@@ -2,10 +2,11 @@ import { escape } from 'mysql2/promise';
 import { WhereCondition, OrderRule, WhereOperator } from './models/sql';
 import { strings, objects, variables } from 'mielk-fn';
 import { ObjectOfPrimitives } from './models/common';
+import { DbFieldsMap } from './models/fields';
 
 const defaultIsActiveField = 'is_active';
 
-let _fieldsMap: { [key: string]: string } = {};
+let _fieldsMap: DbFieldsMap = {};
 
 // Errors
 const throwError = {
@@ -41,7 +42,7 @@ const getSelect = (
 	from: string,
 	where: WhereCondition[] = [],
 	order: OrderRule[] = [],
-	fieldsMap: { [key: string]: string } = {}
+	fieldsMap: DbFieldsMap
 ): string => {
 	throwError.ifEmptyTableProcName(from, 'from');
 	_fieldsMap = fieldsMap;
@@ -52,11 +53,7 @@ const getSelect = (
 	return strings.clear(`SELECT ${_select} FROM ${from} ${_where} ${_order}`);
 };
 
-const getInsert = (
-	table: string,
-	object: { [key: string]: string | number | boolean | null },
-	fieldsMap: { [key: string]: string } = {}
-) => {
+const getInsert = (table: string, object: ObjectOfPrimitives, fieldsMap: DbFieldsMap) => {
 	throwError.ifEmptyTableProcName(table, 'table');
 	throwError.ifNotNonEmptyObject(object, 'object');
 	_fieldsMap = fieldsMap;
@@ -67,30 +64,9 @@ const getInsert = (
 	return `INSERT INTO ${table} (${fields}) VALUES (${values})`;
 };
 
-function getUpdate(
-	table: string,
-	object: { [key: string]: string | number | boolean | null },
-	id: string | number,
-	fieldsMap?: { [key: string]: string }
-): string;
-
-function getUpdate(
-	table: string,
-	object: ObjectOfPrimitives,
-	where: WhereCondition[],
-	fieldsMap?: { [key: string]: string }
-): string;
-function getUpdate(
-	table: string,
-	object: ObjectOfPrimitives,
-	idOrWhere: string | number | WhereCondition[],
-	fieldsMap: { [key: string]: string } = {}
-): string {
+function getUpdate(table: string, object: ObjectOfPrimitives, where: WhereCondition[], fieldsMap: DbFieldsMap): string {
 	throwError.ifEmptyTableProcName(table, 'table');
 	throwError.ifNotNonEmptyObject(object, 'object');
-	const where: WhereCondition[] = variables.isPrimitive(idOrWhere, false)
-		? [{ field: 'id', operator: WhereOperator.Equal, value: idOrWhere as string | number }]
-		: (idOrWhere as WhereCondition[]);
 	throwError.ifNotNonEmptyArrayOfWhereConditions(where, 'where');
 	_fieldsMap = fieldsMap;
 
@@ -100,17 +76,8 @@ function getUpdate(
 	return `UPDATE ${table} SET ${_set} WHERE ${_where}`;
 }
 
-function getDelete(table: string, id: string | number, fieldsMap?: { [key: string]: string }): string;
-function getDelete(table: string, where: WhereCondition[], fieldsMap?: { [key: string]: string }): string;
-function getDelete(
-	table: string,
-	where2: string | number | WhereCondition[] = [],
-	fieldsMap: { [key: string]: string } = {}
-): string {
+function getDelete(table: string, where: WhereCondition[], fieldsMap: DbFieldsMap): string {
 	throwError.ifEmptyTableProcName(table, 'table');
-	const where: WhereCondition[] = variables.isPrimitive(where2, false)
-		? [{ field: 'id', operator: WhereOperator.Equal, value: where2 as string | number }]
-		: (where2 as WhereCondition[]);
 	throwError.ifNotNonEmptyArrayOfWhereConditions(where, 'where');
 	_fieldsMap = fieldsMap;
 
@@ -118,17 +85,8 @@ function getDelete(
 	return `DELETE FROM ${table} WHERE ${_where}`;
 }
 
-function getDeactivate(table: string, id: string | number, fieldsMap?: { [key: string]: string }): string;
-function getDeactivate(table: string, where: WhereCondition[], fieldsMap?: { [key: string]: string }): string;
-function getDeactivate(
-	table: string,
-	where2: string | number | WhereCondition[] = [],
-	fieldsMap: { [key: string]: string } = {}
-): string {
+function getDeactivate(table: string, where: WhereCondition[], fieldsMap: DbFieldsMap): string {
 	throwError.ifEmptyTableProcName(table, 'table');
-	const where: WhereCondition[] = variables.isPrimitive(where2, false)
-		? [{ field: 'id', operator: WhereOperator.Equal, value: where2 as string | number }]
-		: (where2 as WhereCondition[]);
 	throwError.ifNotNonEmptyArrayOfWhereConditions(where, 'where');
 	_fieldsMap = fieldsMap;
 

@@ -6,32 +6,32 @@ import builder from '../src/sqlBuilder';
 describe('getSelect', () => {
 	test('should throw an error if no table name is provided', () => {
 		expect(() => {
-			builder.getSelect([], '', [], []);
+			builder.getSelect([], '', [], [], {});
 		}).toThrow(new Error('Parameter [from] must be a non-empty string'));
 	});
 
 	test('should throw an error if table name is undefined', () => {
 		expect(() => {
-			builder.getSelect([], undefined as unknown as string, [], []);
+			builder.getSelect([], undefined as unknown as string, [], [], {});
 		}).toThrow(new Error('Parameter [from] must be a non-empty string'));
 	});
 
 	test('should return a SELECT * statement if no fields are provided', () => {
-		expect(builder.getSelect([], 'users', [], [])).toBe('SELECT * FROM users');
+		expect(builder.getSelect([], 'users', [], [], {})).toBe('SELECT * FROM users');
 	});
 
 	test('should correctly build a query with specified fields', () => {
-		expect(builder.getSelect(['id', 'name'], 'users', [], [])).toBe('SELECT id, name FROM users');
+		expect(builder.getSelect(['id', 'name'], 'users', [], [], {})).toBe('SELECT id, name FROM users');
 	});
 
 	test('should correctly build a query with a WHERE clause', () => {
 		expect(
-			builder.getSelect(['id', 'name'], 'users', [{ field: 'id', operator: WhereOperator.Equal, value: 1 }], [])
+			builder.getSelect(['id', 'name'], 'users', [{ field: 'id', operator: WhereOperator.Equal, value: 1 }], [], {})
 		).toBe('SELECT id, name FROM users WHERE id = 1');
 	});
 
 	test('should correctly build a query with an ORDER BY clause', () => {
-		expect(builder.getSelect(['id', 'name'], 'users', [], [{ field: 'name', ascending: true }])).toBe(
+		expect(builder.getSelect(['id', 'name'], 'users', [], [{ field: 'name', ascending: true }], {})).toBe(
 			'SELECT id, name FROM users ORDER BY name ASC'
 		);
 	});
@@ -45,7 +45,8 @@ describe('getSelect', () => {
 					{ field: 'id', operator: WhereOperator.Equal, value: 1 },
 					{ field: 'name', operator: WhereOperator.Equal, value: 'John' },
 				],
-				[]
+				[],
+				{}
 			)
 		).toBe("SELECT id, name FROM users WHERE id = 1 AND name = 'John'");
 	});
@@ -59,17 +60,18 @@ describe('getSelect', () => {
 				[
 					{ field: 'name', ascending: true },
 					{ field: 'id', ascending: false },
-				]
+				],
+				{}
 			)
 		).toBe('SELECT id, name FROM users ORDER BY name ASC, id DESC');
 	});
 
 	test('should correctly handle an undefined WHERE clause', () => {
-		expect(builder.getSelect(['id', 'name'], 'users', undefined, [])).toBe('SELECT id, name FROM users');
+		expect(builder.getSelect(['id', 'name'], 'users', undefined, [], {})).toBe('SELECT id, name FROM users');
 	});
 
 	test('should correctly handle an undefined ORDER BY clause', () => {
-		expect(builder.getSelect(['id', 'name'], 'users', [], undefined)).toBe('SELECT id, name FROM users');
+		expect(builder.getSelect(['id', 'name'], 'users', [], undefined, {})).toBe('SELECT id, name FROM users');
 	});
 
 	test('should correctly build a query with both WHERE and ORDER BY clauses', () => {
@@ -78,30 +80,37 @@ describe('getSelect', () => {
 				['id', 'name'],
 				'users',
 				[{ field: 'id', operator: WhereOperator.Equal, value: 1 }],
-				[{ field: 'name', ascending: true }]
+				[{ field: 'name', ascending: true }],
+				{}
 			)
 		).toBe('SELECT id, name FROM users WHERE id = 1 ORDER BY name ASC');
 	});
 
 	test('should correctly handle an undefined SELECT clause and an undefined WHERE clause', () => {
-		expect(builder.getSelect(undefined, 'users', undefined, [])).toBe('SELECT * FROM users');
+		expect(builder.getSelect(undefined, 'users', undefined, [], {})).toBe('SELECT * FROM users');
 	});
 
 	test('should correctly handle an undefined SELECT clause and a defined WHERE clause', () => {
-		expect(builder.getSelect(undefined, 'users', [{ field: 'id', operator: WhereOperator.Equal, value: 1 }], [])).toBe(
-			'SELECT * FROM users WHERE id = 1'
-		);
+		expect(
+			builder.getSelect(undefined, 'users', [{ field: 'id', operator: WhereOperator.Equal, value: 1 }], [], {})
+		).toBe('SELECT * FROM users WHERE id = 1');
 	});
 
 	test('should correctly build a query with a greater than WHERE clause', () => {
 		expect(
-			builder.getSelect(['id', 'name'], 'users', [{ field: 'id', operator: WhereOperator.GreaterThan, value: 1 }], [])
+			builder.getSelect(
+				['id', 'name'],
+				'users',
+				[{ field: 'id', operator: WhereOperator.GreaterThan, value: 1 }],
+				[],
+				{}
+			)
 		).toBe('SELECT id, name FROM users WHERE id > 1');
 	});
 
 	test('should correctly build a query with a less than WHERE clause', () => {
 		expect(
-			builder.getSelect(['id', 'name'], 'users', [{ field: 'id', operator: WhereOperator.LessThan, value: 1 }], [])
+			builder.getSelect(['id', 'name'], 'users', [{ field: 'id', operator: WhereOperator.LessThan, value: 1 }], [], {})
 		).toBe('SELECT id, name FROM users WHERE id < 1');
 	});
 
@@ -111,7 +120,8 @@ describe('getSelect', () => {
 				['id', 'name'],
 				'users',
 				[{ field: 'id', operator: WhereOperator.GreaterEqualThan, value: 1 }],
-				[]
+				[],
+				{}
 			)
 		).toBe('SELECT id, name FROM users WHERE id >= 1');
 	});
@@ -122,27 +132,34 @@ describe('getSelect', () => {
 				['id', 'name'],
 				'users',
 				[{ field: 'id', operator: WhereOperator.LessEqualThan, value: 1 }],
-				[]
+				[],
+				{}
 			)
 		).toBe('SELECT id, name FROM users WHERE id <= 1');
 	});
 
 	test('should correctly build a query with an IN clause and a single value', () => {
-		expect(builder.getSelect(['id', 'name'], 'users', [{ field: 'id', operator: WhereOperator.In, value: 1 }], [])).toBe(
-			'SELECT id, name FROM users WHERE id IN (1)'
-		);
+		expect(
+			builder.getSelect(['id', 'name'], 'users', [{ field: 'id', operator: WhereOperator.In, value: 1 }], [], {})
+		).toBe('SELECT id, name FROM users WHERE id IN (1)');
 	});
 
 	test('should correctly build a query with an IN clause and an array of values', () => {
 		expect(
-			builder.getSelect(['id', 'name'], 'users', [{ field: 'id', operator: WhereOperator.In, value: [1, 2, 3] }], [])
+			builder.getSelect(
+				['id', 'name'],
+				'users',
+				[{ field: 'id', operator: WhereOperator.In, value: [1, 2, 3] }],
+				[],
+				{}
+			)
 		).toBe('SELECT id, name FROM users WHERE id IN (1, 2, 3)');
 	});
 
 	test('should throw an error if IN operator is used but value is not a primitive or array of primitives', () => {
 		expect(() => {
 			const value = {} as unknown as string | number | boolean | null;
-			builder.getSelect(['id', 'name'], 'users', [{ field: 'id', operator: WhereOperator.In, value: value }], []);
+			builder.getSelect(['id', 'name'], 'users', [{ field: 'id', operator: WhereOperator.In, value: value }], [], {});
 		}).toThrow('Invalid data type of [value]. Expected primitive or array of primitives');
 	});
 
@@ -155,20 +172,27 @@ describe('getSelect', () => {
 					{ field: 'id', operator: WhereOperator.In, value: [1, 2, 3] },
 					{ field: 'name', operator: WhereOperator.In, value: ['John', 'Jane'] },
 				],
-				[]
+				[],
+				{}
 			)
 		).toBe("SELECT id, name FROM users WHERE id IN (1, 2, 3) AND name IN ('John', 'Jane')");
 	});
 
 	test('should correctly handle IN clause with null', () => {
 		expect(
-			builder.getSelect(['id', 'name'], 'users', [{ field: 'id', operator: WhereOperator.In, value: null }], [])
+			builder.getSelect(['id', 'name'], 'users', [{ field: 'id', operator: WhereOperator.In, value: null }], [], {})
 		).toBe('SELECT id, name FROM users WHERE id IS NULL');
 	});
 
 	test('should correctly handle IN clause with array with duplicates', () => {
 		expect(
-			builder.getSelect(['id', 'name'], 'users', [{ field: 'id', operator: WhereOperator.In, value: [1, 1, 2] }], [])
+			builder.getSelect(
+				['id', 'name'],
+				'users',
+				[{ field: 'id', operator: WhereOperator.In, value: [1, 1, 2] }],
+				[],
+				{}
+			)
 		).toBe('SELECT id, name FROM users WHERE id IN (1, 2)');
 	});
 
@@ -178,7 +202,8 @@ describe('getSelect', () => {
 				['id', 'name'],
 				'users',
 				[{ field: 'id', operator: WhereOperator.In, value: [1, 1, 2, null] }],
-				[]
+				[],
+				{}
 			)
 		).toBe('SELECT id, name FROM users WHERE (id IN (1, 2) OR id IS NULL)');
 	});
@@ -189,21 +214,22 @@ describe('getSelect', () => {
 				['id', 'name'],
 				'users',
 				[{ field: 'id', operator: WhereOperator.NotIn, value: [1, 1, 2, null] }],
-				[]
+				[],
+				{}
 			)
 		).toBe('SELECT id, name FROM users WHERE (id NOT IN (1, 2) OR id IS NOT NULL)');
 	});
 
 	test('should throw an error if an IN clause is used but value is empty array', () => {
 		expect(() => {
-			builder.getSelect(['id', 'name'], 'users', [{ field: 'id', operator: WhereOperator.In, value: [] }], []);
+			builder.getSelect(['id', 'name'], 'users', [{ field: 'id', operator: WhereOperator.In, value: [] }], [], {});
 		}).toThrow('Invalid data type of [value]. Expected primitive or array of primitives');
 	});
 
 	test('should throw an error if IN operator is used and value is an array with non-primitives', () => {
 		expect(() => {
 			const value = [1, 'two', { three: 3 }] as unknown as string | number | boolean | null;
-			builder.getSelect(['id', 'name'], 'users', [{ field: 'id', operator: WhereOperator.In, value: value }], []);
+			builder.getSelect(['id', 'name'], 'users', [{ field: 'id', operator: WhereOperator.In, value: value }], [], {});
 		}).toThrow('Invalid data type of [value]. Expected primitive or array of primitives');
 	});
 
@@ -260,7 +286,7 @@ describe('getSelect', () => {
 		const select: string[] = ['name'];
 		const from: string = 'users';
 		const where: WhereCondition[] = [{ field: 'name', operator: WhereOperator.Like, value: '%John%' }];
-		const sql: string = builder.getSelect(select, from, where);
+		const sql: string = builder.getSelect(select, from, where, [], {});
 		expect(sql).toEqual("SELECT name FROM users WHERE name LIKE '%John%'");
 	});
 
@@ -268,7 +294,7 @@ describe('getSelect', () => {
 		const select: string[] = ['name'];
 		const from: string = 'users';
 		const where: WhereCondition[] = [{ field: 'name', operator: WhereOperator.NotLike, value: '%John%' }];
-		const sql = builder.getSelect(select, from, where);
+		const sql = builder.getSelect(select, from, where, [], {});
 		expect(sql).toEqual("SELECT name FROM users WHERE name NOT LIKE '%John%'");
 	});
 
@@ -276,7 +302,7 @@ describe('getSelect', () => {
 		const select: string[] = ['name'];
 		const from: string = 'users';
 		const where: WhereCondition[] = [{ field: 'id', operator: WhereOperator.NotIn, value: [1, 2, 3] }];
-		const sql = builder.getSelect(select, from, where);
+		const sql = builder.getSelect(select, from, where, [], {});
 		expect(sql).toEqual('SELECT name FROM users WHERE id NOT IN (1, 2, 3)');
 	});
 
@@ -284,7 +310,7 @@ describe('getSelect', () => {
 		const select: string[] = ['name'];
 		const from: string = 'users';
 		const where: WhereCondition[] = [{ field: 'id', operator: WhereOperator.NotEqual, value: 1 }];
-		const sql = builder.getSelect(select, from, where);
+		const sql = builder.getSelect(select, from, where, [], {});
 		expect(sql).toEqual('SELECT name FROM users WHERE id <> 1');
 	});
 
@@ -292,7 +318,7 @@ describe('getSelect', () => {
 		const select: string[] = ['name'];
 		const from: string = 'users';
 		const where: WhereCondition[] = [{ field: 'name', operator: WhereOperator.Equal, value: null }];
-		const sql = builder.getSelect(select, from, where);
+		const sql = builder.getSelect(select, from, where, [], {});
 		expect(sql).toEqual('SELECT name FROM users WHERE name IS NULL');
 	});
 
@@ -300,7 +326,7 @@ describe('getSelect', () => {
 		const select: string[] = ['name'];
 		const from: string = 'users';
 		const where: WhereCondition[] = [{ field: 'name', operator: WhereOperator.NotEqual, value: null }];
-		const sql = builder.getSelect(select, from, where);
+		const sql = builder.getSelect(select, from, where, [], {});
 		expect(sql).toEqual('SELECT name FROM users WHERE name IS NOT NULL');
 	});
 
@@ -308,7 +334,7 @@ describe('getSelect', () => {
 		const select: string[] = ['name'];
 		const from: string = 'users';
 		const where: WhereCondition[] = [{ field: 'is_active', operator: WhereOperator.Equal, value: true }];
-		const sql = builder.getSelect(select, from, where);
+		const sql = builder.getSelect(select, from, where, [], {});
 		expect(sql).toEqual('SELECT name FROM users WHERE is_active = 1');
 	});
 
@@ -316,7 +342,7 @@ describe('getSelect', () => {
 		const select: string[] = ['name'];
 		const from: string = 'users';
 		const where: WhereCondition[] = [{ field: 'is_active', operator: WhereOperator.Equal, value: false }];
-		const sql = builder.getSelect(select, from, where);
+		const sql = builder.getSelect(select, from, where, [], {});
 		expect(sql).toEqual('SELECT name FROM users WHERE is_active = 0');
 	});
 });
@@ -358,7 +384,7 @@ describe('getInsert', () => {
 	});
 
 	test('should return correct INSERT command if fieldsMap is not provided', () => {
-		const result = builder.getInsert('users', { name: 'John', age: 42 });
+		const result = builder.getInsert('users', { name: 'John', age: 42 }, {});
 		expect(result).toEqual("INSERT INTO users (name, age) VALUES ('John', 42)");
 	});
 
@@ -370,42 +396,67 @@ describe('getInsert', () => {
 
 describe('getUpdate', () => {
 	test('should throw an error if table name is empty', () => {
-		expect(() => builder.getUpdate('', { name: 'John', age: 42 }, 1)).toThrow(
-			'Parameter [table] must be a non-empty string'
-		);
+		expect(() =>
+			builder.getUpdate('', { name: 'John', age: 42 }, [{ field: 'id', operator: WhereOperator.Equal, value: 1 }], {})
+		).toThrow('Parameter [table] must be a non-empty string');
 	});
 	test('should throw an error if table name is undefined', () => {
-		expect(() => builder.getUpdate(undefined as unknown as string, { name: 'John', age: 42 }, 1)).toThrow(
-			'Parameter [table] must be a non-empty string'
-		);
+		expect(() =>
+			builder.getUpdate(
+				undefined as unknown as string,
+				{ name: 'John', age: 42 },
+				[{ field: 'id', operator: WhereOperator.Equal, value: 1 }],
+				{}
+			)
+		).toThrow('Parameter [table] must be a non-empty string');
 	});
 	test('should throw an error if object is empty', () => {
-		expect(() => builder.getUpdate('users', {}, 1)).toThrow(
+		expect(() => builder.getUpdate('users', {}, [{ field: 'id', operator: WhereOperator.Equal, value: 1 }], {})).toThrow(
 			'Parameter [object] must be an object with at least one property'
 		);
 	});
 	test('should throw an error if object is not of object type', () => {
-		expect(() => builder.getUpdate('users', 'John' as unknown as { [key: string]: string | number }, 1)).toThrow(
-			'Parameter [object] must be an object with at least one property'
-		);
+		expect(() =>
+			builder.getUpdate(
+				'users',
+				'John' as unknown as { [key: string]: string | number },
+				[{ field: 'id', operator: WhereOperator.Equal, value: 1 }],
+				{}
+			)
+		).toThrow('Parameter [object] must be an object with at least one property');
 	});
 	test('should use the original property names if fieldsMap is not provided', () => {
-		const result = builder.getUpdate('users', { name: 'John', age: 42 }, 1);
+		const result = builder.getUpdate(
+			'users',
+			{ name: 'John', age: 42 },
+			[{ field: 'id', operator: WhereOperator.Equal, value: 1 }],
+			{}
+		);
 		expect(result).toEqual("UPDATE users SET name = 'John', age = 42 WHERE id = 1");
 	});
 	test('should use the fieldsMap for property names if provided', () => {
-		const result: string = builder.getUpdate('users', { name: 'John', age: 42 }, 1, {
-			name: 'user_name',
-			age: 'user_age',
-			id: 'user_id',
-		});
+		const result: string = builder.getUpdate(
+			'users',
+			{ name: 'John', age: 42 },
+			[{ field: 'id', operator: WhereOperator.Equal, value: 1 }],
+			{
+				name: 'user_name',
+				age: 'user_age',
+				id: 'user_id',
+			}
+		);
 		expect(result).toEqual("UPDATE users SET user_name = 'John', user_age = 42 WHERE user_id = 1");
 	});
 	test('should use the original property names for those not found in fieldsMap', () => {
-		const result: string = builder.getUpdate('users', { name: 'John', age: 42, gender: 'male' }, 1, {
-			name: 'user_name',
-			age: 'user_age',
-		});
+		const result: string = builder.getUpdate(
+			'users',
+			{ name: 'John', age: 42, gender: 'male' },
+			[{ field: 'id', operator: WhereOperator.Equal, value: 1 }],
+			{
+				name: 'user_name',
+				age: 'user_age',
+			}
+		);
 		expect(result).toEqual("UPDATE users SET user_name = 'John', user_age = 42, gender = 'male' WHERE id = 1");
 	});
 
@@ -421,42 +472,42 @@ describe('getUpdate', () => {
 
 	test('should correctly build a query with a greater than WHERE clause', () => {
 		const obj: ObjectOfPrimitives = { name: 'John', age: 42 };
-		expect(builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.GreaterThan, value: 1 }])).toBe(
+		expect(builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.GreaterThan, value: 1 }], {})).toBe(
 			"UPDATE users SET name = 'John', age = 42 WHERE id > 1"
 		);
 	});
 
 	test('should correctly build a query with a less than WHERE clause', () => {
 		const obj: ObjectOfPrimitives = { name: 'John', age: 42 };
-		expect(builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.LessThan, value: 1 }])).toBe(
+		expect(builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.LessThan, value: 1 }], {})).toBe(
 			"UPDATE users SET name = 'John', age = 42 WHERE id < 1"
 		);
 	});
 
 	test('should correctly build a query with a greater equal than WHERE clause', () => {
 		const obj: ObjectOfPrimitives = { name: 'John', age: 42 };
-		expect(builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.GreaterEqualThan, value: 1 }])).toBe(
-			"UPDATE users SET name = 'John', age = 42 WHERE id >= 1"
-		);
+		expect(
+			builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.GreaterEqualThan, value: 1 }], {})
+		).toBe("UPDATE users SET name = 'John', age = 42 WHERE id >= 1");
 	});
 
 	test('should correctly build a query with a less equal than WHERE clause', () => {
 		const obj: ObjectOfPrimitives = { name: 'John', age: 42 };
-		expect(builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.LessEqualThan, value: 1 }])).toBe(
+		expect(builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.LessEqualThan, value: 1 }], {})).toBe(
 			"UPDATE users SET name = 'John', age = 42 WHERE id <= 1"
 		);
 	});
 
 	test('should correctly build a query with an IN clause and a single value', () => {
 		const obj: ObjectOfPrimitives = { name: 'John', age: 42 };
-		expect(builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.In, value: 1 }])).toBe(
+		expect(builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.In, value: 1 }], {})).toBe(
 			"UPDATE users SET name = 'John', age = 42 WHERE id IN (1)"
 		);
 	});
 
 	test('should correctly build a query with an IN clause and an array of values', () => {
 		const obj: ObjectOfPrimitives = { name: 'John', age: 42 };
-		expect(builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.In, value: [1, 2, 3] }])).toBe(
+		expect(builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.In, value: [1, 2, 3] }], {})).toBe(
 			"UPDATE users SET name = 'John', age = 42 WHERE id IN (1, 2, 3)"
 		);
 	});
@@ -465,52 +516,57 @@ describe('getUpdate', () => {
 		const obj: ObjectOfPrimitives = { name: 'John', age: 42 };
 		expect(() => {
 			const value = {} as unknown as string | number | boolean | null;
-			builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.In, value: value }]);
+			builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.In, value: value }], {});
 		}).toThrow('Invalid data type of [value]. Expected primitive or array of primitives');
 	});
 
 	test('should correctly handle multiple IN clauses', () => {
 		const obj: ObjectOfPrimitives = { name: 'John', age: 42 };
 		expect(
-			builder.getUpdate('users', obj, [
-				{ field: 'id', operator: WhereOperator.In, value: [1, 2, 3] },
-				{ field: 'name', operator: WhereOperator.In, value: ['John', 'Jane'] },
-			])
+			builder.getUpdate(
+				'users',
+				obj,
+				[
+					{ field: 'id', operator: WhereOperator.In, value: [1, 2, 3] },
+					{ field: 'name', operator: WhereOperator.In, value: ['John', 'Jane'] },
+				],
+				{}
+			)
 		).toBe("UPDATE users SET name = 'John', age = 42 WHERE id IN (1, 2, 3) AND name IN ('John', 'Jane')");
 	});
 
 	test('should correctly handle IN clause with null', () => {
 		const obj: ObjectOfPrimitives = { name: 'John', age: 42 };
-		expect(builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.In, value: null }])).toBe(
+		expect(builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.In, value: null }], {})).toBe(
 			"UPDATE users SET name = 'John', age = 42 WHERE id IS NULL"
 		);
 	});
 
 	test('should correctly handle IN clause with array with duplicates', () => {
 		const obj: ObjectOfPrimitives = { name: 'John', age: 42 };
-		expect(builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.In, value: [1, 1, 2] }])).toBe(
+		expect(builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.In, value: [1, 1, 2] }], {})).toBe(
 			"UPDATE users SET name = 'John', age = 42 WHERE id IN (1, 2)"
 		);
 	});
 
 	test('should correctly handle IN clause with array with null', () => {
 		const obj: ObjectOfPrimitives = { name: 'John', age: 42 };
-		expect(builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.In, value: [1, 1, 2, null] }])).toBe(
-			"UPDATE users SET name = 'John', age = 42 WHERE (id IN (1, 2) OR id IS NULL)"
-		);
+		expect(
+			builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.In, value: [1, 1, 2, null] }], {})
+		).toBe("UPDATE users SET name = 'John', age = 42 WHERE (id IN (1, 2) OR id IS NULL)");
 	});
 
 	test('should correctly handle NOT IN clause with array with null', () => {
 		const obj: ObjectOfPrimitives = { name: 'John', age: 42 };
 		expect(
-			builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.NotIn, value: [1, 1, 2, null] }])
+			builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.NotIn, value: [1, 1, 2, null] }], {})
 		).toBe("UPDATE users SET name = 'John', age = 42 WHERE (id NOT IN (1, 2) OR id IS NOT NULL)");
 	});
 
 	test('should throw an error if an IN clause is used but value is empty array', () => {
 		const obj: ObjectOfPrimitives = { name: 'John', age: 42 };
 		expect(() => {
-			builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.In, value: [] }]);
+			builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.In, value: [] }], {});
 		}).toThrow('Invalid data type of [value]. Expected primitive or array of primitives');
 	});
 
@@ -518,7 +574,7 @@ describe('getUpdate', () => {
 		const obj: ObjectOfPrimitives = { name: 'John', age: 42 };
 		expect(() => {
 			const value = [1, 'two', { three: 3 }] as unknown as string | number | boolean | null;
-			builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.In, value: value }]);
+			builder.getUpdate('users', obj, [{ field: 'id', operator: WhereOperator.In, value: value }], {});
 		}).toThrow('Invalid data type of [value]. Expected primitive or array of primitives');
 	});
 });
@@ -526,19 +582,19 @@ describe('getUpdate', () => {
 describe('getDelete', () => {
 	test('should throw an error if table name is empty', () => {
 		expect(() => {
-			builder.getDelete('', []);
+			builder.getDelete('', [], {});
 		}).toThrow(new Error('Parameter [table] must be a non-empty string'));
 	});
 
 	test('should throw an error if table name is undefined', () => {
 		expect(() => {
-			builder.getDelete(undefined as unknown as string, []);
+			builder.getDelete(undefined as unknown as string, [], {});
 		}).toThrow(new Error('Parameter [table] must be a non-empty string'));
 	});
 
 	test('should throw an error if where array is empty', () => {
 		expect(() => {
-			builder.getDelete('users', []);
+			builder.getDelete('users', [], {});
 		}).toThrow(new Error('Parameter [where] must be an array with at least one WhereCondition object'));
 	});
 
@@ -555,18 +611,18 @@ describe('getDelete', () => {
 	});
 
 	test('should return valid SQL command for provided numeric id', () => {
-		const result: string = builder.getDelete('users', 5);
+		const result: string = builder.getDelete('users', [{ field: 'id', operator: WhereOperator.Equal, value: 5 }], {});
 		expect(result).toEqual('DELETE FROM users WHERE id = 5');
 	});
 
 	test('should return valid SQL command for provided text id', () => {
-		const result: string = builder.getDelete('users', 'id');
+		const result: string = builder.getDelete('users', [{ field: 'id', operator: WhereOperator.Equal, value: 'id' }], {});
 		expect(result).toEqual("DELETE FROM users WHERE id = 'id'");
 	});
 
 	test('should return correct DELETE command when fieldsMap is not provided', () => {
 		const where: WhereCondition[] = [{ field: 'name', operator: WhereOperator.Equal, value: 'John' }];
-		const result: string = builder.getDelete('users', where);
+		const result: string = builder.getDelete('users', where, {});
 		expect(result).toBe("DELETE FROM users WHERE name = 'John'");
 	});
 
@@ -586,37 +642,37 @@ describe('getDelete', () => {
 	});
 
 	test('should correctly build a query with a greater than WHERE clause', () => {
-		expect(builder.getDelete('users', [{ field: 'id', operator: WhereOperator.GreaterThan, value: 1 }])).toBe(
+		expect(builder.getDelete('users', [{ field: 'id', operator: WhereOperator.GreaterThan, value: 1 }], {})).toBe(
 			'DELETE FROM users WHERE id > 1'
 		);
 	});
 
 	test('should correctly build a query with a less than WHERE clause', () => {
-		expect(builder.getDelete('users', [{ field: 'id', operator: WhereOperator.LessThan, value: 1 }])).toBe(
+		expect(builder.getDelete('users', [{ field: 'id', operator: WhereOperator.LessThan, value: 1 }], {})).toBe(
 			'DELETE FROM users WHERE id < 1'
 		);
 	});
 
 	test('should correctly build a query with a greater equal than WHERE clause', () => {
-		expect(builder.getDelete('users', [{ field: 'id', operator: WhereOperator.GreaterEqualThan, value: 1 }])).toBe(
+		expect(builder.getDelete('users', [{ field: 'id', operator: WhereOperator.GreaterEqualThan, value: 1 }], {})).toBe(
 			'DELETE FROM users WHERE id >= 1'
 		);
 	});
 
 	test('should correctly build a query with a less equal than WHERE clause', () => {
-		expect(builder.getDelete('users', [{ field: 'id', operator: WhereOperator.LessEqualThan, value: 1 }])).toBe(
+		expect(builder.getDelete('users', [{ field: 'id', operator: WhereOperator.LessEqualThan, value: 1 }], {})).toBe(
 			'DELETE FROM users WHERE id <= 1'
 		);
 	});
 
 	test('should correctly build a query with an IN clause and a single value', () => {
-		expect(builder.getDelete('users', [{ field: 'id', operator: WhereOperator.In, value: 1 }])).toBe(
+		expect(builder.getDelete('users', [{ field: 'id', operator: WhereOperator.In, value: 1 }], {})).toBe(
 			'DELETE FROM users WHERE id IN (1)'
 		);
 	});
 
 	test('should correctly build a query with an IN clause and an array of values', () => {
-		expect(builder.getDelete('users', [{ field: 'id', operator: WhereOperator.In, value: [1, 2, 3] }])).toBe(
+		expect(builder.getDelete('users', [{ field: 'id', operator: WhereOperator.In, value: [1, 2, 3] }], {})).toBe(
 			'DELETE FROM users WHERE id IN (1, 2, 3)'
 		);
 	});
@@ -624,53 +680,57 @@ describe('getDelete', () => {
 	test('should throw an error if IN operator is used but value is not a primitive or array of primitives', () => {
 		expect(() => {
 			const value = {} as unknown as string | number | boolean | null;
-			builder.getDelete('users', [{ field: 'id', operator: WhereOperator.In, value: value }]);
+			builder.getDelete('users', [{ field: 'id', operator: WhereOperator.In, value: value }], {});
 		}).toThrow('Invalid data type of [value]. Expected primitive or array of primitives');
 	});
 
 	test('should correctly handle multiple IN clauses', () => {
 		expect(
-			builder.getDelete('users', [
-				{ field: 'id', operator: WhereOperator.In, value: [1, 2, 3] },
-				{ field: 'name', operator: WhereOperator.In, value: ['John', 'Jane'] },
-			])
+			builder.getDelete(
+				'users',
+				[
+					{ field: 'id', operator: WhereOperator.In, value: [1, 2, 3] },
+					{ field: 'name', operator: WhereOperator.In, value: ['John', 'Jane'] },
+				],
+				{}
+			)
 		).toBe("DELETE FROM users WHERE id IN (1, 2, 3) AND name IN ('John', 'Jane')");
 	});
 
 	test('should correctly handle IN clause with null', () => {
-		expect(builder.getDelete('users', [{ field: 'id', operator: WhereOperator.In, value: null }])).toBe(
+		expect(builder.getDelete('users', [{ field: 'id', operator: WhereOperator.In, value: null }], {})).toBe(
 			'DELETE FROM users WHERE id IS NULL'
 		);
 	});
 
 	test('should correctly handle IN clause with array with duplicates', () => {
-		expect(builder.getDelete('users', [{ field: 'id', operator: WhereOperator.In, value: [1, 1, 2] }])).toBe(
+		expect(builder.getDelete('users', [{ field: 'id', operator: WhereOperator.In, value: [1, 1, 2] }], {})).toBe(
 			'DELETE FROM users WHERE id IN (1, 2)'
 		);
 	});
 
 	test('should correctly handle IN clause with array with null', () => {
-		expect(builder.getDelete('users', [{ field: 'id', operator: WhereOperator.In, value: [1, 1, 2, null] }])).toBe(
+		expect(builder.getDelete('users', [{ field: 'id', operator: WhereOperator.In, value: [1, 1, 2, null] }], {})).toBe(
 			'DELETE FROM users WHERE (id IN (1, 2) OR id IS NULL)'
 		);
 	});
 
 	test('should correctly handle NOT IN clause with array with null', () => {
-		expect(builder.getDelete('users', [{ field: 'id', operator: WhereOperator.NotIn, value: [1, 1, 2, null] }])).toBe(
-			'DELETE FROM users WHERE (id NOT IN (1, 2) OR id IS NOT NULL)'
-		);
+		expect(
+			builder.getDelete('users', [{ field: 'id', operator: WhereOperator.NotIn, value: [1, 1, 2, null] }], {})
+		).toBe('DELETE FROM users WHERE (id NOT IN (1, 2) OR id IS NOT NULL)');
 	});
 
 	test('should throw an error if an IN clause is used but value is empty array', () => {
 		expect(() => {
-			builder.getDelete('users', [{ field: 'id', operator: WhereOperator.In, value: [] }]);
+			builder.getDelete('users', [{ field: 'id', operator: WhereOperator.In, value: [] }], {});
 		}).toThrow('Invalid data type of [value]. Expected primitive or array of primitives');
 	});
 
 	test('should throw an error if IN operator is used and value is an array with non-primitives', () => {
 		expect(() => {
 			const value = [1, 'two', { three: 3 }] as unknown as string | number | boolean | null;
-			builder.getDelete('users', [{ field: 'id', operator: WhereOperator.In, value: value }]);
+			builder.getDelete('users', [{ field: 'id', operator: WhereOperator.In, value: value }], {});
 		}).toThrow('Invalid data type of [value]. Expected primitive or array of primitives');
 	});
 });
@@ -705,18 +765,26 @@ describe('getDeactivate', () => {
 	});
 
 	test('should return valid SQL command for provided numeric id', () => {
-		const result: string = builder.getDeactivate('users', 5);
+		const result: string = builder.getDeactivate(
+			'users',
+			[{ field: 'id', operator: WhereOperator.Equal, value: 5 }],
+			{}
+		);
 		expect(result).toEqual('UPDATE users SET is_active = 0 WHERE id = 5');
 	});
 
 	test('should return valid SQL command for provided text id', () => {
-		const result: string = builder.getDeactivate('users', 'id');
+		const result: string = builder.getDeactivate(
+			'users',
+			[{ field: 'id', operator: WhereOperator.Equal, value: 'id' }],
+			{}
+		);
 		expect(result).toEqual("UPDATE users SET is_active = 0 WHERE id = 'id'");
 	});
 
 	test('should return valid SQL command for provided input parameters', () => {
 		const where: WhereCondition[] = [{ field: 'id', operator: WhereOperator.Equal, value: 1 }];
-		const result: string = builder.getDeactivate('users', where);
+		const result: string = builder.getDeactivate('users', where, {});
 		expect(result).toEqual('UPDATE users SET is_active = 0 WHERE id = 1');
 	});
 
@@ -737,37 +805,37 @@ describe('getDeactivate', () => {
 	});
 
 	test('should correctly build a query with a greater than WHERE clause', () => {
-		expect(builder.getDeactivate('users', [{ field: 'id', operator: WhereOperator.GreaterThan, value: 1 }])).toBe(
+		expect(builder.getDeactivate('users', [{ field: 'id', operator: WhereOperator.GreaterThan, value: 1 }], {})).toBe(
 			'UPDATE users SET is_active = 0 WHERE id > 1'
 		);
 	});
 
 	test('should correctly build a query with a less than WHERE clause', () => {
-		expect(builder.getDeactivate('users', [{ field: 'id', operator: WhereOperator.LessThan, value: 1 }])).toBe(
+		expect(builder.getDeactivate('users', [{ field: 'id', operator: WhereOperator.LessThan, value: 1 }], {})).toBe(
 			'UPDATE users SET is_active = 0 WHERE id < 1'
 		);
 	});
 
 	test('should correctly build a query with a greater equal than WHERE clause', () => {
-		expect(builder.getDeactivate('users', [{ field: 'id', operator: WhereOperator.GreaterEqualThan, value: 1 }])).toBe(
-			'UPDATE users SET is_active = 0 WHERE id >= 1'
-		);
+		expect(
+			builder.getDeactivate('users', [{ field: 'id', operator: WhereOperator.GreaterEqualThan, value: 1 }], {})
+		).toBe('UPDATE users SET is_active = 0 WHERE id >= 1');
 	});
 
 	test('should correctly build a query with a less equal than WHERE clause', () => {
-		expect(builder.getDeactivate('users', [{ field: 'id', operator: WhereOperator.LessEqualThan, value: 1 }])).toBe(
+		expect(builder.getDeactivate('users', [{ field: 'id', operator: WhereOperator.LessEqualThan, value: 1 }], {})).toBe(
 			'UPDATE users SET is_active = 0 WHERE id <= 1'
 		);
 	});
 
 	test('should correctly build a query with an IN clause and a single value', () => {
-		expect(builder.getDeactivate('users', [{ field: 'id', operator: WhereOperator.In, value: 1 }])).toBe(
+		expect(builder.getDeactivate('users', [{ field: 'id', operator: WhereOperator.In, value: 1 }], {})).toBe(
 			'UPDATE users SET is_active = 0 WHERE id IN (1)'
 		);
 	});
 
 	test('should correctly build a query with an IN clause and an array of values', () => {
-		expect(builder.getDeactivate('users', [{ field: 'id', operator: WhereOperator.In, value: [1, 2, 3] }])).toBe(
+		expect(builder.getDeactivate('users', [{ field: 'id', operator: WhereOperator.In, value: [1, 2, 3] }], {})).toBe(
 			'UPDATE users SET is_active = 0 WHERE id IN (1, 2, 3)'
 		);
 	});
@@ -775,53 +843,57 @@ describe('getDeactivate', () => {
 	test('should throw an error if IN operator is used but value is not a primitive or array of primitives', () => {
 		expect(() => {
 			const value = {} as unknown as string | number | boolean | null;
-			builder.getDeactivate('users', [{ field: 'id', operator: WhereOperator.In, value: value }]);
+			builder.getDeactivate('users', [{ field: 'id', operator: WhereOperator.In, value: value }], {});
 		}).toThrow('Invalid data type of [value]. Expected primitive or array of primitives');
 	});
 
 	test('should correctly handle multiple IN clauses', () => {
 		expect(
-			builder.getDeactivate('users', [
-				{ field: 'id', operator: WhereOperator.In, value: [1, 2, 3] },
-				{ field: 'name', operator: WhereOperator.In, value: ['John', 'Jane'] },
-			])
+			builder.getDeactivate(
+				'users',
+				[
+					{ field: 'id', operator: WhereOperator.In, value: [1, 2, 3] },
+					{ field: 'name', operator: WhereOperator.In, value: ['John', 'Jane'] },
+				],
+				{}
+			)
 		).toBe("UPDATE users SET is_active = 0 WHERE id IN (1, 2, 3) AND name IN ('John', 'Jane')");
 	});
 
 	test('should correctly handle IN clause with null', () => {
-		expect(builder.getDeactivate('users', [{ field: 'id', operator: WhereOperator.In, value: null }])).toBe(
+		expect(builder.getDeactivate('users', [{ field: 'id', operator: WhereOperator.In, value: null }], {})).toBe(
 			'UPDATE users SET is_active = 0 WHERE id IS NULL'
 		);
 	});
 
 	test('should correctly handle IN clause with array with duplicates', () => {
-		expect(builder.getDeactivate('users', [{ field: 'id', operator: WhereOperator.In, value: [1, 1, 2] }])).toBe(
+		expect(builder.getDeactivate('users', [{ field: 'id', operator: WhereOperator.In, value: [1, 1, 2] }], {})).toBe(
 			'UPDATE users SET is_active = 0 WHERE id IN (1, 2)'
 		);
 	});
 
 	test('should correctly handle IN clause with array with null', () => {
-		expect(builder.getDeactivate('users', [{ field: 'id', operator: WhereOperator.In, value: [1, 1, 2, null] }])).toBe(
-			'UPDATE users SET is_active = 0 WHERE (id IN (1, 2) OR id IS NULL)'
-		);
+		expect(
+			builder.getDeactivate('users', [{ field: 'id', operator: WhereOperator.In, value: [1, 1, 2, null] }], {})
+		).toBe('UPDATE users SET is_active = 0 WHERE (id IN (1, 2) OR id IS NULL)');
 	});
 
 	test('should correctly handle NOT IN clause with array with null', () => {
 		expect(
-			builder.getDeactivate('users', [{ field: 'id', operator: WhereOperator.NotIn, value: [1, 1, 2, null] }])
+			builder.getDeactivate('users', [{ field: 'id', operator: WhereOperator.NotIn, value: [1, 1, 2, null] }], {})
 		).toBe('UPDATE users SET is_active = 0 WHERE (id NOT IN (1, 2) OR id IS NOT NULL)');
 	});
 
 	test('should throw an error if an IN clause is used but value is empty array', () => {
 		expect(() => {
-			builder.getDeactivate('users', [{ field: 'id', operator: WhereOperator.In, value: [] }]);
+			builder.getDeactivate('users', [{ field: 'id', operator: WhereOperator.In, value: [] }], {});
 		}).toThrow('Invalid data type of [value]. Expected primitive or array of primitives');
 	});
 
 	test('should throw an error if IN operator is used and value is an array with non-primitives', () => {
 		expect(() => {
 			const value = [1, 'two', { three: 3 }] as unknown as string | number | boolean | null;
-			builder.getDeactivate('users', [{ field: 'id', operator: WhereOperator.In, value: value }]);
+			builder.getDeactivate('users', [{ field: 'id', operator: WhereOperator.In, value: value }], {});
 		}).toThrow('Invalid data type of [value]. Expected primitive or array of primitives');
 	});
 });
