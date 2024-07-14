@@ -24,6 +24,6 @@ export interface DbField {
 export interface IFieldsManager {
 	getFieldsMap: (name: string) => Record<string, string> | null;
 	getFieldName: (name: string, property: string) => string | null;
-	// convertRecordset: (tableName: string, recordset: DbRecordSet) => DbRecordSet;
+	convertRecordset: (name: string, recordset: DbRecordSet) => DbRecordSet;
 	// convertMultiRecordset: (multiRs: MultiRecordSet) => MultiRecordSet;
 }

@@ -127,7 +127,6 @@ describe('query', () => {
 				{ id: 3, name: 'Czesiek', isActive: true },
 			],
 			rows: 3,
-			insertId: 0,
 			fields: [
 				{ name: 'user_id', type: 3 },
 				{ name: 'user_name', type: 253 },

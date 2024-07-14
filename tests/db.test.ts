@@ -34,7 +34,6 @@ const dbStructure: DbStructure = {
 
 describe('update', () => {
 	test('should create new instance of Update class with fieldsManager if dbStructure is given as a parameter', () => {
-		const fieldsManager = new FieldsManager(dbStructure);
 		const update = db(config, dbStructure).update();
 		expect(update).toBeInstanceOf(Update);
 		expect(update.___props().fieldsManager.___getDbStructure()).toEqual(dbStructure);
@@ -47,17 +46,16 @@ describe('update', () => {
 	});
 });
 
-// describe('select', () => {
-// 	test('should create new instance of Select class with fieldsMap if given as a parameter', () => {
-// 		const fieldsManager = new FieldsManager();
-// 		const select = db(config, fieldsManager).select();
-// 		expect(select).toBeInstanceOf(Select);
-// 		expect(select.___props().fieldsManager).toEqual(fieldsManager);
-// 	});
+describe('select', () => {
+	test('should create new instance of Select class with fieldsMap if given as a parameter', () => {
+		const select = db(config, dbStructure).select();
+		expect(select).toBeInstanceOf(Select);
+		expect(select.___props().fieldsManager.___getDbStructure()).toEqual(dbStructure);
+	});
 
-// 	test('should create new instance of Select class without fieldsMap if not given as a parameter', () => {
-// 		const select = db(config).select();
-// 		expect(select).toBeInstanceOf(Select);
-// 		expect(select.___props().fieldsMap).toBeUndefined();
-// 	});
-// });
+	test('should create new instance of Select class without fieldsMap if not given as a parameter', () => {
+		const select = db(config).select();
+		expect(select).toBeInstanceOf(Select);
+		expect(select.___props().fieldsMap).toBeUndefined();
+	});
+});

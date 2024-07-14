@@ -1,17 +1,18 @@
 import { DbField } from './fields';
-import { DbRecord } from './records';
+import { DbRecordSet } from './records';
 
 /* Response received from mysql2/promise */
 export interface QueryResponse {
-	items: DbRecord[];
 	rows: number;
-	insertId: number;
 	fields: DbField[];
+	items: DbRecordSet;
+	insertId?: number;
 }
 
 /* Response returned by mielk-db.db */
 export interface MySqlResponse {
 	status: boolean;
-	rows: number;
-	items: DbRecord[];
+	rows?: number;
+	items?: DbRecordSet;
+	message?: string;
 }

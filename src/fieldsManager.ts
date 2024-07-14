@@ -32,14 +32,14 @@ export class FieldsManager implements IFieldsManager {
 	// 	return result;
 	// };
 
-	// convertRecordset = (tableName: string, recordset: DbRecordSet): DbRecordSet => {
-	// 	const fs: DbTable | undefined = this.dbStructure.get(tableName);
-	// 	const fieldsMap: DbFieldsMap = fs ? fs.fieldsMap : {};
-	// 	const convertedFieldsMap: DbFieldsMap = objects.invert(fieldsMap);
-	// 	return recordset.map((record) => this.convertRecord(record, convertedFieldsMap));
-	// };
+	convertRecordset = (name: string, recordset: DbRecordSet): DbRecordSet => {
+		const dbTable: DbTable | undefined = this.dbStructure[name];
+		const fieldsMap: DbFieldsMap = dbTable?.fieldsMap || {};
+		const convertedFieldsMap: DbFieldsMap = objects.invert(fieldsMap);
+		return recordset.map((record) => this.convertRecord(record, convertedFieldsMap));
+	};
 
-	// private convertRecord = (record: DbRecord, fields: Record<string, string>): DbRecord => {
-	// 	return objects.modifyKeys(record, (key) => fields[key] || key);
-	// };
+	private convertRecord = (record: DbRecord, fields: Record<string, string>): DbRecord => {
+		return objects.modifyKeys(record, (key) => fields[key] || key);
+	};
 }

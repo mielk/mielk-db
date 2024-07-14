@@ -16,9 +16,9 @@ const createQueryResponse = (data: QueryResult, fieldPackets: FieldPacket[]): Qu
 	const fields: DbField[] = createFieldsArray(fieldPackets);
 	if (Array.isArray(data)) {
 		if (data.length === 0) {
-			return { items: [], rows: 0, insertId: 0, fields };
+			return { items: [], rows: 0, fields };
 		} else {
-			return { items: data as ObjectOfPrimitives[], rows: data.length, insertId: 0, fields };
+			return { items: data as ObjectOfPrimitives[], rows: data.length, fields };
 		}
 	} else if (isResultSetHeader(data)) {
 		return { items: [], rows: data.affectedRows, insertId: data.insertId, fields };
