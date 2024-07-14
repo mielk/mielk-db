@@ -77,7 +77,7 @@ export class Update {
 		};
 	};
 
-	validate = () => {
+	private validate = (): void => {
 		if (!this._from) throw new Error('UPDATE cannot be executed if [tableName] has not been set');
 		if (!this._id && this._where.length === 0) throw new Error('UPDATE cannot be executed without any condition');
 		if (Object.keys(this._object || {}).length === 0)
