@@ -11,4 +11,6 @@ const db = (config: ConnectionData, dbStructure?: DbStructure) => {
 	};
 };
 
+export { db };
+
 export default db;
