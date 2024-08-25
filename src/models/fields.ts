@@ -1,4 +1,4 @@
-import { DbRecordSet, MultiRecordSet } from './records';
+import { DbRecordSet, MultiRecordSet } from './records.js';
 
 export type DbStructure = Record<string, DbTable>;
 

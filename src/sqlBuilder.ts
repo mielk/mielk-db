@@ -1,8 +1,8 @@
 import { escape } from 'mysql2/promise';
-import { WhereCondition, OrderRule, WhereOperator } from './models/sql';
+import { WhereCondition, OrderRule, WhereOperator } from './models/sql.js';
 import { strings, objects, variables } from 'mielk-fn';
-import { ObjectOfPrimitives } from './models/common';
-import { DbFieldsMap } from './models/fields';
+import { ObjectOfPrimitives } from './models/common.js';
+import { DbFieldsMap } from './models/fields.js';
 
 const defaultIsActiveField = 'is_active';
 

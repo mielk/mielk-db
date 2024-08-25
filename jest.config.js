@@ -6,16 +6,19 @@ export default {
 		'^.+\\.(ts|tsx)$': 'ts-jest',
 		'^.+\\.(js|jsx|mjs)$': 'babel-jest',
 	},
-	globals: {
-		'ts-jest': {
-			tsconfig: '<rootDir>/tsconfig.json',
-		},
-	},
+	// globals: {
+	// 	'ts-jest': {
+	// 		tsconfig: '<rootDir>/tsconfig.json',
+	// 	},
+	// },
 	testMatch: [
-		'**/?(*.)+(spec|test).[jt]s?(x)', // Match test files with .spec.ts or .test.ts extensions
+		'**/?(*.)+(spec|test).ts?(x)', // Match test files with .spec.ts or .test.ts extensions
 	],
 	moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'], // File extensions for modules
 	transformIgnorePatterns: ['/node_modules/(?!mielk-fn|mielk-db).+\\.js$'],
+	moduleNameMapper: {
+		'^(\\.{1,2}/.*)\\.js$': '$1',
+	},
 	reporters: [
 		'default',
 		[

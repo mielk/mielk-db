@@ -1,5 +1,5 @@
-import { FieldsManager } from '../fieldsManager';
-import { DbStructure, IFieldsManager } from '../models/fields';
+import { FieldsManager } from '../fieldsManager.js';
+import { DbStructure, IFieldsManager } from '../models/fields.js';
 
 class FieldsManagerFactory {
 	create = (dbStructure: DbStructure): IFieldsManager => {

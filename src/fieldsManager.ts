@@ -1,7 +1,7 @@
 import { objects } from 'mielk-fn';
-import { DbFieldsMap, DbStructure, IFieldsManager } from './models/fields';
-import { DbTable } from './models/fields';
-import { DbRecord, DbRecordSet, MultiRecordSet } from './models/records';
+import { DbFieldsMap, DbStructure, IFieldsManager } from './models/fields.js';
+import { DbTable } from './models/fields.js';
+import { DbRecord, DbRecordSet, MultiRecordSet } from './models/records.js';
 
 export class FieldsManager implements IFieldsManager {
 	private dbStructure: DbStructure;

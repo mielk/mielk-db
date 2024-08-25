@@ -1,12 +1,12 @@
-import { DbStructure, IFieldsManager } from '../models/fields';
-import { ConnectionData, OrderRule } from '../models/sql';
-import { MySqlResponse, QueryResponse } from '../models/responses';
-import { WhereCondition, WhereOperator } from '../models/sql';
-import { query } from '../mysql';
-import sqlBuilder from '../sqlBuilder';
-import { DbFieldsMap } from '../models/fields';
-import FieldsManagerFactory from '../factories/FieldsManagerFactory';
-import { DbRecord, DbRecordSet } from '../models/records';
+import { DbStructure, IFieldsManager } from '../models/fields.js';
+import { ConnectionData, OrderRule } from '../models/sql.js';
+import { MySqlResponse, QueryResponse } from '../models/responses.js';
+import { WhereCondition, WhereOperator } from '../models/sql.js';
+import { query } from '../mysql.js';
+import sqlBuilder from '../sqlBuilder.js';
+import { DbFieldsMap } from '../models/fields.js';
+import FieldsManagerFactory from '../factories/FieldsManagerFactory.js';
+import { DbRecord, DbRecordSet } from '../models/records.js';
 
 export class Select {
 	private _connectionData: ConnectionData;

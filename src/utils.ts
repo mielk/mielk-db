@@ -1,4 +1,4 @@
-import { RequestType } from './models/sql';
+import { RequestType } from './models/sql.js';
 
 const getRequestTypeFromSql = (sql: string): RequestType => {
 	for (const requestType of Object.values(RequestType)) {

@@ -1,5 +1,5 @@
-import { DbField } from './fields';
-import { DbRecordSet } from './records';
+import { DbField } from './fields.js';
+import { DbRecordSet } from './records.js';
 
 /* Response received from mysql2/promise */
 export interface QueryResponse {

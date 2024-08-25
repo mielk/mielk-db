@@ -1,12 +1,11 @@
-import { DbStructure, IFieldsManager } from '../models/fields';
-import { ConnectionData } from '../models/sql';
-import { MySqlResponse } from '../models/responses';
-import { WhereCondition, WhereOperator } from '../models/sql';
-import { query } from '../mysql';
-import sqlBuilder from '../sqlBuilder';
-import { DbFieldsMap } from '../models/fields';
-import FieldsManagerFactory from '../factories/FieldsManagerFactory';
-import { FieldsManager } from '../fieldsManager';
+import { DbStructure, IFieldsManager } from '../models/fields.js';
+import { ConnectionData } from '../models/sql.js';
+import { MySqlResponse } from '../models/responses.js';
+import { WhereCondition, WhereOperator } from '../models/sql.js';
+import { query } from '../mysql.js';
+import sqlBuilder from '../sqlBuilder.js';
+import { DbFieldsMap } from '../models/fields.js';
+import FieldsManagerFactory from '../factories/FieldsManagerFactory.js';
 
 export class Update {
 	private _connectionData: ConnectionData;

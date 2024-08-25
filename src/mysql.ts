@@ -1,9 +1,8 @@
 import { FieldPacket, QueryResult, ResultSetHeader, createConnection } from 'mysql2/promise';
-import { ConnectionData } from './models/sql';
-import { DbField } from './models/fields';
-import { QueryResponse } from './models/responses';
-import { ObjectOfPrimitives } from './models/common';
-import { Connection } from 'mysql2/typings/mysql/lib/Connection';
+import { ConnectionData } from './models/sql.js';
+import { DbField } from './models/fields.js';
+import { QueryResponse } from './models/responses.js';
+import { ObjectOfPrimitives } from './models/common.js';
 
 const query = async (config: ConnectionData, sql: string): Promise<QueryResponse> => {
 	const connection = await createConnection(config);
