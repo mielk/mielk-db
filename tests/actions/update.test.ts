@@ -1,14 +1,10 @@
-import { variables } from 'mielk-fn';
 import { ConnectionData, WhereCondition, WhereOperator, RequestType } from '../../src/models/sql';
-import { DbRecordSet, MultiRecordSet } from '../../src/models/records';
-import { DbField, DbFieldsMap, DbStructure } from '../../src/models/fields';
-import { FieldsManager } from '../../src/fieldsManager';
+import { ObjectOfPrimitives } from '../../src/models/common';
+import { DbRecordSet } from '../../src/models/records';
+import { DbFieldsMap, DbStructure } from '../../src/models/fields';
 import { Update } from '../../src/actions/update';
-import FieldsManagerFactory from '../../src/factories/FieldsManagerFactory';
 import mysql from '../../src/mysql';
 import sqlBuilder from '../../src/sqlBuilder';
-import utils from '../../src/utils';
-import { ObjectOfPrimitives } from '../../src/models/common';
 
 const config: ConnectionData = {
 	host: '',
@@ -32,7 +28,7 @@ const dbStructure: DbStructure = {
 	},
 };
 
-const sql: string = 'SELECT';
+const sql: string = 'UPDATE';
 const sqlError: string = '!';
 const errorTable: string = '!';
 const errorMessage: string = 'Error message';
@@ -140,6 +136,32 @@ describe('where', () => {
 	});
 });
 
+describe('conditions', () => {
+	test('should append new condition to [_where] array if condition objects are given', () => {
+		const where1: WhereCondition = { field: 'name', operator: WhereOperator.Equal, value: 'John' };
+		const where2: WhereCondition = { field: 'age', operator: WhereOperator.Equal, value: null };
+
+		const update = new Update(config).conditions(where1, where2);
+
+		const where = update.___props().where;
+		expect(where.length).toEqual(2);
+		expect(where[0]).toEqual(where1);
+		expect(where[1]).toEqual(where2);
+	});
+
+	test('should append conditions to [_where] array if conditions objects are given as an array', () => {
+		const where1: WhereCondition = { field: 'name', operator: WhereOperator.Equal, value: 'John' };
+		const where2: WhereCondition = { field: 'age', operator: WhereOperator.Equal, value: null };
+
+		const update = new Update(config).conditions([where1, where2]);
+
+		const where = update.___props().where;
+		expect(where.length).toEqual(2);
+		expect(where[0]).toEqual(where1);
+		expect(where[1]).toEqual(where2);
+	});
+});
+
 describe('execute', () => {
 	afterEach(() => {
 		jest.clearAllMocks();
@@ -147,22 +169,22 @@ describe('execute', () => {
 
 	test('should throw an error if invoked without table name', async () => {
 		const object = { name: 'John', surname: 'Smith' };
-		const id = 5;
+		const id: number = 5;
 		await expect(new Update(config).object(object).where('id', WhereOperator.Equal, id).execute()).rejects.toThrow(
 			'UPDATE cannot be executed if [tableName] has not been set'
 		);
 	});
 
 	test('should throw an error if invoked without object', async () => {
-		const tableName = 'users';
-		const id = 5;
+		const tableName: string = 'users';
+		const id: number = 5;
 		await expect(new Update(config).from(tableName).where('id', WhereOperator.Equal, id).execute()).rejects.toThrow(
 			'UPDATE cannot be executed if [object] has not been set'
 		);
 	});
 
-	test('should throw an error if neither id nor where is set', async () => {
-		const tableName = 'users';
+	test('should throw an error if no WHERE condition is set', async () => {
+		const tableName: string = 'users';
 		const object = { name: 'John', surname: 'Smith' };
 		await expect(new Update(config).from(tableName).object(object).execute()).rejects.toThrow(
 			'UPDATE cannot be executed without any condition'
@@ -170,7 +192,7 @@ describe('execute', () => {
 	});
 
 	test('sqlBuilder should be called once and with correct parameters if no dbStructure specified', async () => {
-		const tableName = 'users';
+		const tableName: string = 'users';
 		const object = { name: 'John', surname: 'Smith' };
 
 		const update = new Update(config).from(tableName).object(object).where('name', WhereOperator.Equal, null);
@@ -181,87 +203,84 @@ describe('execute', () => {
 		expect(sqlBuilder.getUpdate).toHaveBeenCalledWith(tableName, props.object, props.where, {});
 	});
 
-	// test('should work correctly if fieldsManager is not set', async () => {
-	// 	const tableName = 'users';
-	// 	const object = { name: 'John', surname: 'Smith' };
-	// 	const id = 5;
-	// 	const result = await new Update(config)
-	// 		.from(tableName)
-	// 		.object(object)
-	// 		.where('name', WhereOperator.Equal, null)
-	// 		.whereId(id)
-	// 		.execute();
-	// 	expect(result).toBeDefined();
+	test('sqlBuilder should be called once and with correct parameters if dbStructure is specified', async () => {
+		const tableName: string = 'users';
+		const object = { name: 'John', surname: 'Smith' };
 
-	// 	expect(sqlBuilder.getUpdate).toHaveBeenCalledTimes(1);
-	// 	expect(sqlBuilder.getUpdate).toHaveBeenCalledWith(tableName, object, 5, {});
+		const update = new Update(config, dbStructure)
+			.from(tableName)
+			.object(object)
+			.where('name', WhereOperator.Equal, null);
+		const result = await update.execute();
+		const props = update.___props();
 
-	// 	expect(mysql.query).toHaveBeenCalledTimes(1);
-	// 	expect(mysql.query).toHaveBeenCalledWith(config, sqlWithId);
-	// });
+		expect(sqlBuilder.getUpdate).toHaveBeenCalledTimes(1);
+		expect(sqlBuilder.getUpdate).toHaveBeenCalledWith(tableName, props.object, props.where, usersFieldsMap);
+	});
 
-	// test('should invoke query with proper sql if fieldsManager is set', async () => {
-	// 	const tableName = 'users';
-	// 	const object = { name: 'John', surname: 'Smith' };
-	// 	const id = 5;
-	// 	const result = await new Update(config, dbStructure)
-	// 		.from(tableName)
-	// 		.object(object)
-	// 		.where('name', WhereOperator.Equal, null)
-	// 		.whereId(id)
-	// 		.execute();
-	// 	expect(result).toBeDefined();
+	test('mysql should be called once and with correct parameters', async () => {
+		const tableName: string = 'users';
+		const object = { name: 'John', surname: 'Smith' };
+		const update = new Update(config).from(tableName).object(object).where('name', WhereOperator.Equal, null);
+		const result = await update.execute();
 
-	// 	expect(sqlBuilder.getUpdate).toHaveBeenCalledTimes(1);
-	// 	expect(sqlBuilder.getUpdate).toHaveBeenCalledWith(tableName, object, 5, usersFieldsMap);
+		expect(mysql.query).toHaveBeenCalledTimes(1);
+		expect(mysql.query).toHaveBeenCalledWith(config, sql);
+	});
 
-	// 	expect(mysql.query).toHaveBeenCalledTimes(1);
-	// 	expect(mysql.query).toHaveBeenCalledWith(config, sqlWithId);
-	// });
+	test('if fieldsManager is specified it should be invoked on the query result', async () => {
+		const tableName: string = 'users';
+		const object = { name: 'John', surname: 'Smith' };
+		const update = new Update(config, dbStructure)
+			.from(tableName)
+			.object(object)
+			.where('name', WhereOperator.Equal, null);
+		const result = await update.execute();
 
-	// test('should invoke query with proper sql if id is not set', async () => {
-	// 	const tableName = 'users';
-	// 	const object = { name: 'John', surname: 'Smith' };
-	// 	const result = await new Update(config, dbStructure)
-	// 		.from(tableName)
-	// 		.object(object)
-	// 		.where('name', WhereOperator.Equal, null)
-	// 		.where('age', WhereOperator.Equal, null)
-	// 		.execute();
+		expect(fieldsManagerMock.convertRecordset).toHaveBeenCalledTimes(1);
+		expect(fieldsManagerMock.convertRecordset).toHaveBeenCalledWith(tableName, originalRecordset);
+	});
 
-	// 	expect(result).toBeDefined();
+	test('should return correct result if fieldsManager is specified', async () => {
+		const tableName: string = 'users';
+		const object = { name: 'John', surname: 'Smith' };
 
-	// 	expect(sqlBuilder.getUpdate).toHaveBeenCalledTimes(1);
-	// 	expect(sqlBuilder.getUpdate).toHaveBeenCalledWith(
-	// 		tableName,
-	// 		object,
-	// 		[
-	// 			{ field: 'name', operator: WhereOperator.Equal, value: null },
-	// 			{ field: 'age', operator: WhereOperator.Equal, value: null },
-	// 		],
-	// 		usersFieldsMap
-	// 	);
+		const update = new Update(config, dbStructure)
+			.from(tableName)
+			.object(object)
+			.where('name', WhereOperator.Equal, null);
+		const result = await update.execute();
 
-	// 	expect(mysql.query).toHaveBeenCalledTimes(1);
-	// 	expect(mysql.query).toHaveBeenCalledWith(config, sqlWithoutId);
-	// });
+		expect(result.status).toBeTruthy();
+		expect(result.rows).toEqual(2);
+		expect(result.items).toEqual(convertedRecordset);
+	});
 
-	// test('should invoke query with proper sql if fieldsManager is set', async () => {
-	// 	const tableName = 'users';
-	// 	const object = { name: 'John', surname: 'Smith' };
-	// 	const id = 5;
-	// 	const result = await new Update(config, dbStructure)
-	// 		.from(tableName)
-	// 		.object(object)
-	// 		.where('name', WhereOperator.Equal, null)
-	// 		.whereId(id)
-	// 		.execute();
-	// 	expect(result).toBeDefined();
+	test('should return correct result if fieldsManager is not specified', async () => {
+		const tableName: string = 'users';
+		const object = { name: 'John', surname: 'Smith' };
 
-	// 	expect(sqlBuilder.getUpdate).toHaveBeenCalledTimes(1);
-	// 	expect(sqlBuilder.getUpdate).toHaveBeenCalledWith(tableName, object, 5, usersFieldsMap);
+		const update = new Update(config).from(tableName).object(object).where('name', WhereOperator.Equal, null);
+		const result = await update.execute();
 
-	// 	expect(mysql.query).toHaveBeenCalledTimes(1);
-	// 	expect(mysql.query).toHaveBeenCalledWith(config, sqlWithId);
-	// });
+		expect(result.status).toBeTruthy();
+		expect(result.rows).toEqual(2);
+		expect(result.items).toEqual(originalRecordset);
+		expect(result.message).toBeUndefined();
+	});
+
+	test('should return falsy status and error message result if error was thrown by mysql', async () => {
+		const tableName: string = errorTable;
+		const object = { name: 'John', surname: 'Smith' };
+		const update = new Update(config, dbStructure)
+			.from(tableName)
+			.object(object)
+			.where('name', WhereOperator.Equal, null);
+		const result = await update.execute();
+
+		expect(result.status).toBeFalsy();
+		expect(result.rows).toBeUndefined();
+		expect(result.items).toBeUndefined();
+		expect(result.message).toEqual(errorMessage);
+	});
 });

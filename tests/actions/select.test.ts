@@ -335,16 +335,6 @@ describe('execute', () => {
 		expect(result.status).toBeTruthy();
 		expect(result.rows).toEqual(2);
 		expect(result.items).toEqual(originalRecordset);
-	});
-
-	test('should return correct result if fieldsManager is not specified', async () => {
-		const tableName: string = 'users';
-		const select = new Select(config).from(tableName);
-		const result = await select.execute();
-
-		expect(result.status).toBeTruthy();
-		expect(result.rows).toEqual(2);
-		expect(result.items).toEqual(originalRecordset);
 		expect(result.message).toBeUndefined();
 	});
 

@@ -1,7 +1,8 @@
 import { DbStructure, IFieldsManager } from '../models/fields.js';
 import { ConnectionData } from '../models/sql.js';
-import { MySqlResponse } from '../models/responses.js';
+import { MySqlResponse, QueryResponse } from '../models/responses.js';
 import { WhereCondition, WhereOperator } from '../models/sql.js';
+import { DbRecordSet } from '../models/records.js';
 import { query } from '../mysql.js';
 import sqlBuilder from '../sqlBuilder.js';
 import { DbFieldsMap } from '../models/fields.js';
@@ -52,18 +53,36 @@ export class Update {
 		return this;
 	}
 
+	/* Appends the given WhereCondition object to this objects' private array of WhereConditions and returns the object itself. */
+	conditions(...conditions: (WhereCondition | WhereCondition[])[]): Update {
+		const flat: WhereCondition[] = [...conditions].flat();
+		this._where.push(...flat);
+		return this;
+	}
+
 	execute = async (): Promise<MySqlResponse> => {
 		this.validate();
 
 		const fieldsMap: DbFieldsMap = this._fieldsManager?.getFieldsMap(this._from) || {};
 		const sql: string = sqlBuilder.getUpdate(this._from, this._object, this._where, fieldsMap);
-		const result = await query(this._connectionData, sql);
 
-		return {
-			status: false,
-			rows: result.rows,
-			items: [],
-		};
+		try {
+			const result: QueryResponse = await query(this._connectionData, sql);
+			const items: DbRecordSet = this._fieldsManager
+				? this._fieldsManager.convertRecordset(this._from, result.items)
+				: result.items;
+			return {
+				status: true,
+				rows: result.rows,
+				items,
+			};
+		} catch (err) {
+			const message: string = err instanceof Error ? err.message : 'An unknown error occurred';
+			return {
+				status: false,
+				message,
+			};
+		}
 	};
 
 	private validate = (): void => {

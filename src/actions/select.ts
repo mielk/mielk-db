@@ -6,7 +6,7 @@ import { query } from '../mysql.js';
 import sqlBuilder from '../sqlBuilder.js';
 import { DbFieldsMap } from '../models/fields.js';
 import FieldsManagerFactory from '../factories/FieldsManagerFactory.js';
-import { DbRecord, DbRecordSet } from '../models/records.js';
+import { DbRecordSet } from '../models/records.js';
 
 export class Select {
 	private _connectionData: ConnectionData;
