@@ -1,14 +1,33 @@
-import { FieldPacket, QueryResult, ResultSetHeader, createConnection } from 'mysql2/promise';
+import { Connection, FieldPacket, Query, QueryResult, ResultSetHeader, createConnection } from 'mysql2/promise';
 import { ConnectionData } from './models/sql.js';
 import { DbField } from './models/fields.js';
 import { QueryResponse } from './models/responses.js';
 import { ObjectOfPrimitives } from './models/common.js';
+import { SqlProcessingError } from './errors/SqlProcessingError.js';
+import { DbConnectionError } from './errors/DbConnectionError.js';
 
 const query = async (config: ConnectionData, sql: string): Promise<QueryResponse> => {
-	const connection = await createConnection(config);
-	const [data, fields] = await connection.execute(sql);
-	const result: QueryResponse = createQueryResponse(data, fields);
-	return result;
+	const ERR_CONNECTION: string = 'Error while trying to establish connection';
+	const ERR_PROCESSING: string = 'Error while processing given SQL';
+	try {
+		return createConnection(config).then(async (connection: Connection) => {
+			try {
+				return connection.execute(sql).then((response) => {
+					const [data, fields] = response;
+					const result: QueryResponse = createQueryResponse(data, fields);
+					return result;
+				});
+			} catch (err: unknown) {
+				throw new SqlProcessingError(`${ERR_PROCESSING} | ${(err as Error).message}`);
+			}
+		});
+	} catch (err: unknown) {
+		if (err instanceof SqlProcessingError) {
+			throw err;
+		} else {
+			throw new DbConnectionError(`${ERR_CONNECTION} | ${(err as Error).message}`);
+		}
+	}
 };
 
 const createQueryResponse = (data: QueryResult, fieldPackets: FieldPacket[]): QueryResponse => {

@@ -1,36 +1,32 @@
 import { ConnectionData, WhereCondition, WhereOperator, RequestType, OrderRule } from '../../src/models/sql';
-import { DbRecordSet } from '../../src/models/records';
 import { DbFieldsMap, DbStructure } from '../../src/models/fields';
 import { Select } from '../../src/actions/select';
-import mysql from '../../src/mysql';
-import sqlBuilder from '../../src/sqlBuilder';
+import { query } from '../../src/mysql';
+import { getSelect } from '../../src/sqlBuilder';
+import { MySqlResponse } from '../../src/models/responses';
 
 const config: ConnectionData = {
-	host: '',
-	database: '',
-	user: '',
-	password: '',
+	host: 'host',
+	database: 'database',
+	user: 'user',
+	password: 'password',
 };
 
 const itemsFieldsMap: DbFieldsMap = { id: 'item_id', name: 'item_name' };
 const usersFieldsMap: DbFieldsMap = { id: 'user_id', name: 'user_name', isActive: 'is_active' };
+const structureItem = (tableName: string, fieldsMap: DbFieldsMap) => {
+	return {
+		tableName,
+		key: 'id',
+		fieldsMap,
+	};
+};
 const dbStructure: DbStructure = {
-	items: {
-		tableName: 'items',
-		key: 'id',
-		fieldsMap: itemsFieldsMap,
-	},
-	users: {
-		tableName: 'users',
-		key: 'id',
-		fieldsMap: usersFieldsMap,
-	},
+	items: structureItem('items', itemsFieldsMap),
+	users: structureItem('users', usersFieldsMap),
 };
 
 const sql: string = 'SELECT';
-const sqlError: string = '!';
-const errorTable: string = '!';
-const errorMessage: string = 'Error message';
 
 const originalRecordset = [
 	{ user_id: 1, user_name: 'Adam' },
@@ -42,56 +38,36 @@ const convertedRecordset = [
 	{ id: 2, name: 'Bartek' },
 ];
 
-const fieldsManagerMock = {
-	___getDbStructure: jest.fn().mockReturnValue(dbStructure),
+/* MOCKS */
+
+const mockFieldsManager = {
+	___getDbStructure: jest.fn(() => dbStructure),
 	getFieldsMap: jest.fn((name: string) => usersFieldsMap),
 	getFieldName: jest.fn((name: string, property: string) => {
-		if (property === 'user_id') return 'id';
-		if (property === 'user_name') return 'name';
-		return 'field';
+		const map: Record<string, string> = { user_id: 'id', user_name: 'name' };
+		return map[property] || 'field';
 	}),
-	convertRecordset: jest.fn((name: string, recordset: DbRecordSet) => convertedRecordset),
+	convertRecordset: jest.fn(() => convertedRecordset),
 };
-
 jest.mock('../../src/factories/FieldsManagerFactory', () => ({
-	create: jest.fn().mockImplementation(() => fieldsManagerMock),
+	create: jest.fn(() => mockFieldsManager),
 }));
+jest.mock('../../src/sqlBuilder', () => ({ getSelect: jest.fn() }));
+jest.mock('../../src/mysql', () => ({ query: jest.fn(() => ({ status: true, rows: 2, items: originalRecordset })) }));
 
-jest.mock('../../src/sqlBuilder', () => ({
-	getSelect: jest
-		.fn()
-		.mockImplementation(
-			(
-				select: string[] = [],
-				from: string,
-				where: WhereCondition[] = [],
-				order: OrderRule[] = [],
-				fieldsMap: { [key: string]: string } = {}
-			) => (from === errorTable ? sqlError : sql)
-		),
-}));
-
-jest.mock('../../src/mysql', () => ({
-	query: jest.fn().mockImplementation((config: ConnectionData, sql: string) => {
-		if (sql === sqlError) {
-			throw new Error(errorMessage);
-		} else {
-			return { status: true, rows: 2, items: originalRecordset };
-		}
-	}),
-}));
+const mockGetSelect: jest.MockedFunction<any> = getSelect as jest.MockedFunction<any>;
+const mockMySqlQuery: jest.MockedFunction<any> = query as jest.MockedFunction<any>;
 
 describe('constructor', () => {
-	test('should create new instance of Select class with fieldsManager if dbStructure is given as a parameter', () => {
-		const select = new Select(config, dbStructure);
+	test('should create a new instance of Select class with fieldsManager if dbStructure is given as a parameter', () => {
+		const select: Select = new Select(config, dbStructure);
 		expect(select).toBeInstanceOf(Select);
 		expect(select.___props().fieldsManager.___getDbStructure()).toEqual(dbStructure);
 	});
 
-	test('should create new instance of Select class without fieldsManager if not given as a parameter', () => {
+	test('should create a new instance of Select class without fieldsManager if not given as a parameter', () => {
 		const update = new Select(config);
 		expect(update).toBeInstanceOf(Select);
-		``;
 		expect(update.___props().fieldsManager).toBeUndefined();
 	});
 });
@@ -99,7 +75,7 @@ describe('constructor', () => {
 describe('from', () => {
 	test('should assign new value to [_from] parameter', () => {
 		const tableName = 'users';
-		const select = new Select(config).from(tableName);
+		const select: Select = new Select(config).from(tableName);
 		expect(select.___props().from).toEqual(tableName);
 	});
 
@@ -133,7 +109,7 @@ describe('conditions', () => {
 		const where1: WhereCondition = { field: 'name', operator: WhereOperator.Equal, value: 'John' };
 		const where2: WhereCondition = { field: 'age', operator: WhereOperator.Equal, value: null };
 
-		const select = new Select(config).conditions(where1, where2);
+		const select: Select = new Select(config).conditions(where1, where2);
 
 		const where = select.___props().where;
 		expect(where.length).toEqual(2);
@@ -145,7 +121,7 @@ describe('conditions', () => {
 		const where1: WhereCondition = { field: 'name', operator: WhereOperator.Equal, value: 'John' };
 		const where2: WhereCondition = { field: 'age', operator: WhereOperator.Equal, value: null };
 
-		const select = new Select(config).conditions([where1, where2]);
+		const select: Select = new Select(config).conditions([where1, where2]);
 
 		const where = select.___props().where;
 		expect(where.length).toEqual(2);
@@ -156,73 +132,73 @@ describe('conditions', () => {
 
 describe('fields', () => {
 	test('should append single field properly', () => {
-		const select = new Select(config).fields('name');
+		const select: Select = new Select(config).fields('name');
 		const fields = select.___props().fields;
 		expect(fields).toEqual(['name']);
 	});
 
 	test('should append single field inoriginal casing', () => {
-		const select = new Select(config).fields('isActive');
+		const select: Select = new Select(config).fields('isActive');
 		const fields = select.___props().fields;
 		expect(fields).toEqual(['isActive']);
 	});
 
 	test('should add field name without redundant spaces', () => {
-		const select = new Select(config).fields('  name  ');
+		const select: Select = new Select(config).fields('  name  ');
 		const fields = select.___props().fields;
 		expect(fields).toEqual(['name']);
 	});
 
 	test('should skip adding field is such a field is already added', () => {
-		const select = new Select(config).fields('name').fields('name');
+		const select: Select = new Select(config).fields('name').fields('name');
 		const fields = select.___props().fields;
 		expect(fields).toEqual(['name']);
 	});
 
 	test('should skip adding field is such a field after trimming is already added', () => {
-		const select = new Select(config).fields('name').fields('name  ');
+		const select: Select = new Select(config).fields('name').fields('name  ');
 		const fields = select.___props().fields;
 		expect(fields).toEqual(['name']);
 	});
 
 	test('should skip adding field is such a field is already added but with different casing', () => {
-		const select = new Select(config).fields('name').fields('Name');
+		const select: Select = new Select(config).fields('name').fields('Name');
 		const fields = select.___props().fields;
 		expect(fields).toEqual(['name']);
 	});
 
 	test('should ignore if no field is specified as an input parameter', () => {
-		const select = new Select(config).fields('  ');
+		const select: Select = new Select(config).fields('  ');
 		const fields = select.___props().fields;
 		expect(fields).toEqual([]);
 	});
 
 	test('should correctly add fields if more fields is passed', () => {
-		const select = new Select(config).fields('name', 'id');
+		const select: Select = new Select(config).fields('name', 'id');
 		const fields = select.___props().fields;
 		expect(fields).toEqual(['name', 'id']);
 	});
 
 	test('should correctly add fields if an array of fields is passed', () => {
-		const select = new Select(config).fields(['name', 'id']);
+		const select: Select = new Select(config).fields(['name', 'id']);
 		const fields = select.___props().fields;
 		expect(fields).toEqual(['name', 'id']);
 	});
 
 	test('should correctly add fields if more arrays of fields is passed', () => {
-		const select = new Select(config).fields(['name', 'id']).fields(['date']).fields(['value', 'uuid']);
+		const select: Select = new Select(config).fields(['name', 'id']).fields(['date']).fields(['value', 'uuid']);
 		const fields = select.___props().fields;
 		expect(fields).toEqual(['name', 'id', 'date', 'value', 'uuid']);
 	});
 
 	test('should correctly add fields if both arrays and strings are passed', () => {
-		const select = new Select(config).fields(['name', 'id'], 'value');
+		const select: Select = new Select(config).fields(['name', 'id'], 'value');
 		const fields = select.___props().fields;
 		expect(fields).toEqual(['name', 'id', 'value']);
 	});
 
 	test('should correctly add fields if an array contains repetitive values', () => {
-		const select = new Select(config).fields(['value']).fields(['name', '  value', 'id', 'name']);
+		const select: Select = new Select(config).fields(['value']).fields(['name', '  value', 'id', 'name']);
 		const fields = select.___props().fields;
 		expect(fields).toEqual(['value', 'name', 'id']);
 	});
@@ -233,7 +209,7 @@ describe('order', () => {
 		const order1: OrderRule = { field: 'name', ascending: true };
 		const order2: OrderRule = { field: 'age', ascending: false };
 
-		const select = new Select(config).order(order1, order2);
+		const select: Select = new Select(config).order(order1, order2);
 
 		const order = select.___props().order;
 		expect(order.length).toEqual(2);
@@ -245,7 +221,7 @@ describe('order', () => {
 		const order1: OrderRule = { field: 'name', ascending: true };
 		const order2: OrderRule = { field: 'age', ascending: false };
 
-		const select = new Select(config).order([order1, order2]);
+		const select: Select = new Select(config).order([order1, order2]);
 
 		const order = select.___props().order;
 		expect(order.length).toEqual(2);
@@ -261,7 +237,7 @@ describe('execute', () => {
 
 	test('should throw an error if invoked without table name', async () => {
 		const object = { name: 'John', surname: 'Smith' };
-		const id = 5;
+		const id: number = 5;
 		await expect(new Select(config).execute()).rejects.toThrow(
 			'SELECT cannot be executed if [tableName] has not been set'
 		);
@@ -275,12 +251,13 @@ describe('execute', () => {
 		];
 		const order: OrderRule[] = [{ field: 'name', ascending: true }];
 
-		const select = new Select(config).from(tableName).conditions(wheres).order(order);
+		const select: Select = new Select(config).from(tableName).conditions(wheres).order(order);
 		const props = select.___props();
-		const result = await select.execute();
 
-		expect(sqlBuilder.getSelect).toHaveBeenCalledTimes(1);
-		expect(sqlBuilder.getSelect).toHaveBeenCalledWith(props.fields, tableName, props.where, props.order, {});
+		await select.execute().then(() => {
+			expect(mockGetSelect).toHaveBeenCalledTimes(1);
+			expect(mockGetSelect).toHaveBeenCalledWith(props.fields, tableName, props.where, props.order, {});
+		});
 	});
 
 	test('sqlBuilder should be called once and with correct parameters if dbStructure is specified', async () => {
@@ -291,36 +268,40 @@ describe('execute', () => {
 		];
 		const order: OrderRule[] = [{ field: 'name', ascending: true }];
 
-		const select = new Select(config, dbStructure).from(tableName).conditions(wheres).order(order);
+		const select: Select = new Select(config, dbStructure).from(tableName).conditions(wheres).order(order);
 		const props = select.___props();
-		const result = await select.execute();
 
-		expect(sqlBuilder.getSelect).toHaveBeenCalledTimes(1);
-		expect(sqlBuilder.getSelect).toHaveBeenCalledWith(props.fields, tableName, props.where, props.order, usersFieldsMap);
+		await select.execute().then(() => {
+			expect(mockGetSelect).toHaveBeenCalledTimes(1);
+			expect(mockGetSelect).toHaveBeenCalledWith(props.fields, tableName, props.where, props.order, usersFieldsMap);
+		});
 	});
 
 	test('mysql should be called once and with correct parameters', async () => {
 		const tableName: string = 'users';
-		const select = new Select(config).from(tableName);
-		const result = await select.execute();
+		const select: Select = new Select(config).from(tableName);
 
-		expect(mysql.query).toHaveBeenCalledTimes(1);
-		expect(mysql.query).toHaveBeenCalledWith(config, sql);
+		mockGetSelect.mockReturnValue(sql);
+		await select.execute().then(() => {
+			expect(mockMySqlQuery).toHaveBeenCalledTimes(1);
+			expect(mockMySqlQuery).toHaveBeenCalledWith(config, sql);
+		});
 	});
 
 	test('if fieldsManager is specified it should be invoked on the query result', async () => {
 		const tableName: string = 'users';
-		const select = new Select(config, dbStructure).from(tableName);
-		const result = await select.execute();
+		const select: Select = new Select(config, dbStructure).from(tableName);
 
-		expect(fieldsManagerMock.convertRecordset).toHaveBeenCalledTimes(1);
-		expect(fieldsManagerMock.convertRecordset).toHaveBeenCalledWith(tableName, originalRecordset);
+		await select.execute().then(() => {
+			expect(mockFieldsManager.convertRecordset).toHaveBeenCalledTimes(1);
+			expect(mockFieldsManager.convertRecordset).toHaveBeenCalledWith(tableName, originalRecordset);
+		});
 	});
 
 	test('should return correct result if fieldsManager is specified', async () => {
 		const tableName: string = 'users';
-		const select = new Select(config, dbStructure).from(tableName);
-		const result = await select.execute();
+		const select: Select = new Select(config, dbStructure).from(tableName);
+		const result: MySqlResponse = await select.execute();
 
 		expect(result.status).toBeTruthy();
 		expect(result.rows).toEqual(2);
@@ -329,8 +310,8 @@ describe('execute', () => {
 
 	test('should return correct result if fieldsManager is not specified', async () => {
 		const tableName: string = 'users';
-		const select = new Select(config).from(tableName);
-		const result = await select.execute();
+		const select: Select = new Select(config).from(tableName);
+		const result: MySqlResponse = await select.execute();
 
 		expect(result.status).toBeTruthy();
 		expect(result.rows).toEqual(2);
@@ -339,13 +320,18 @@ describe('execute', () => {
 	});
 
 	test('should return falsy status and error message result if error was thrown by mysql', async () => {
-		const tableName: string = errorTable;
-		const select = new Select(config).from(tableName);
-		const result = await select.execute();
+		const errorMessage: string = 'Error message';
+		const select: Select = new Select(config).from('table');
 
-		expect(result.status).toBeFalsy();
-		expect(result.rows).toBeUndefined();
-		expect(result.items).toBeUndefined();
-		expect(result.message).toEqual(errorMessage);
+		mockMySqlQuery.mockImplementation(() => {
+			throw new Error(errorMessage);
+		});
+
+		await select.execute().then((result) => {
+			expect(result.status).toBeFalsy();
+			expect(result.rows).toBeUndefined();
+			expect(result.items).toBeUndefined();
+			expect(result.message).toEqual(errorMessage);
+		});
 	});
 });

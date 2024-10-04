@@ -22,15 +22,15 @@ export class FieldsManager implements IFieldsManager {
 		return fieldsMap ? fieldsMap[property] || null : null;
 	};
 
-	// convertMultiRecordset = (multiRs: MultiRecordSet): MultiRecordSet => {
-	// 	const result: MultiRecordSet = {};
-	// 	const entries = Object.entries(multiRs);
-	// 	entries.forEach((entry: [string, any]) => {
-	// 		const [tableName, records] = entry;
-	// 		result[tableName] = this.convertRecordset(tableName, records);
-	// 	});
-	// 	return result;
-	// };
+	convertMultiRecordset = (multiRs: MultiRecordSet): MultiRecordSet => {
+		const result: MultiRecordSet = {};
+		const entries = Object.entries(multiRs);
+		entries.forEach((entry: [string, any]) => {
+			const [tableName, records] = entry;
+			result[tableName] = this.convertRecordset(tableName, records);
+		});
+		return result;
+	};
 
 	convertRecordset = (name: string, recordset: DbRecordSet): DbRecordSet => {
 		const dbTable: DbTable | undefined = this.dbStructure[name];

@@ -1,92 +1,68 @@
-import { ConnectionData, WhereCondition, WhereOperator, RequestType } from '../../src/models/sql';
-import { ObjectOfPrimitives } from '../../src/models/common';
-import { DbRecordSet } from '../../src/models/records';
+import { ConnectionData, WhereCondition, WhereOperator } from '../../src/models/sql';
 import { DbFieldsMap, DbStructure } from '../../src/models/fields';
 import { Delete } from '../../src/actions/delete';
-import mysql from '../../src/mysql';
-import sqlBuilder from '../../src/sqlBuilder';
+import { query } from '../../src/mysql';
+import { getDelete } from '../../src/sqlBuilder';
 
 const config: ConnectionData = {
-	// host: '',
-	// database: '',
-	// user: '',
-	// password: '',
-	host: 'localhost',
-	user: 'root',
-	password: 'BQC_7XXzum_YQ46FuN',
-	database: 'ling',
+	host: 'host',
+	database: 'database',
+	user: 'user',
+	password: 'password',
 };
 
 const itemsFieldsMap: DbFieldsMap = { id: 'item_id', name: 'item_name' };
 const usersFieldsMap: DbFieldsMap = { id: 'user_id', name: 'user_name', isActive: 'is_active' };
+const structureItem = (tableName: string, fieldsMap: DbFieldsMap) => {
+	return {
+		tableName,
+		key: 'id',
+		fieldsMap,
+	};
+};
 const dbStructure: DbStructure = {
-	items: {
-		tableName: 'items',
-		key: 'id',
-		fieldsMap: itemsFieldsMap,
-	},
-	users: {
-		tableName: 'users',
-		key: 'id',
-		fieldsMap: usersFieldsMap,
-	},
+	items: structureItem('items', itemsFieldsMap),
+	users: structureItem('users', usersFieldsMap),
 };
 
 const sql: string = 'DELETE';
-const sqlError: string = '!';
-const errorTable: string = '!';
-const errorMessage: string = 'Error message';
 
-// const originalRecordset = [
-// 	{ user_id: 1, user_name: 'Adam' },
-// 	{ user_id: 2, user_name: 'Bartek' },
-// ];
+/* MOCKS */
 
-// const convertedRecordset = [
-// 	{ id: 1, name: 'Adam' },
-// 	{ id: 2, name: 'Bartek' },
-// ];
-
-const fieldsManagerMock = {
+const mockFieldsManager = {
 	___getDbStructure: jest.fn().mockReturnValue(dbStructure),
-	getFieldsMap: jest.fn((name: string) => usersFieldsMap),
+	getFieldsMap: jest.fn().mockReturnValue(usersFieldsMap),
 	getFieldName: jest.fn((name: string, property: string) => {
-		if (property === 'user_id') return 'id';
-		if (property === 'user_name') return 'name';
-		return 'field';
+		const map: Record<string, string> = { user_id: 'id', user_name: 'name' };
+		return map[property] || 'field';
 	}),
+	convertRecordset: jest.fn(), //() => convertedRecordset),
 };
-
 jest.mock('../../src/factories/FieldsManagerFactory', () => ({
-	create: jest.fn().mockImplementation(() => fieldsManagerMock),
+	create: jest.fn(() => mockFieldsManager),
 }));
-
 jest.mock('../../src/sqlBuilder', () => ({
-	getDelete: jest
-		.fn()
-		.mockImplementation((table: string, where: WhereCondition[], fieldsMap: DbFieldsMap) =>
-			table === errorTable ? sqlError : sql
-		),
+	getDelete: jest.fn(),
+}));
+jest.mock('../../src/mysql', () => ({
+	query: jest.fn(),
 }));
 
-jest.mock('../../src/mysql', () => ({
-	query: jest.fn().mockImplementation((config: ConnectionData, sql: string) => {
-		if (sql === sqlError) {
-			throw new Error(errorMessage);
-		} else {
-			return { status: true };
-		}
-	}),
-}));
+const mockGetDelete: jest.MockedFunction<any> = getDelete as jest.MockedFunction<any>;
+const mockMySqlQuery: jest.MockedFunction<any> = query as jest.MockedFunction<any>;
+
+mockGetDelete.mockReturnValue(sql);
+mockMySqlQuery.mockResolvedValue({ status: true });
 
 describe('constructor', () => {
 	test('should create new instance of Delete class with fieldsManager if dbStructure is given as a parameter', () => {
-		const del = new Delete(config, dbStructure);
+		const del: Delete = new Delete(config, dbStructure);
 		expect(del).toBeInstanceOf(Delete);
 		expect(del.___props().fieldsManager.___getDbStructure()).toEqual(dbStructure);
 	});
+
 	test('should create new instance of Delete class without fieldsManager if not given as a parameter', () => {
-		const del = new Delete(config);
+		const del: Delete = new Delete(config);
 		expect(del).toBeInstanceOf(Delete);
 		expect(del.___props().fieldsManager).toBeUndefined();
 	});
@@ -95,7 +71,7 @@ describe('constructor', () => {
 describe('from', () => {
 	test('should assign new value to [_from] parameter', () => {
 		const tableName = 'users';
-		const del = new Delete(config).from(tableName);
+		const del: Delete = new Delete(config).from(tableName);
 		expect(del.___props().from).toEqual(tableName);
 	});
 
@@ -129,9 +105,9 @@ describe('conditions', () => {
 		const where1: WhereCondition = { field: 'name', operator: WhereOperator.Equal, value: 'John' };
 		const where2: WhereCondition = { field: 'age', operator: WhereOperator.Equal, value: null };
 
-		const del = new Delete(config).conditions(where1, where2);
+		const del: Delete = new Delete(config).conditions(where1, where2);
 
-		const where = del.___props().where;
+		const where: WhereCondition[] = del.___props().where;
 		expect(where.length).toEqual(2);
 		expect(where[0]).toEqual(where1);
 		expect(where[1]).toEqual(where2);
@@ -141,9 +117,9 @@ describe('conditions', () => {
 		const where1: WhereCondition = { field: 'name', operator: WhereOperator.Equal, value: 'John' };
 		const where2: WhereCondition = { field: 'age', operator: WhereOperator.Equal, value: null };
 
-		const del = new Delete(config).conditions([where1, where2]);
+		const del: Delete = new Delete(config).conditions([where1, where2]);
 
-		const where = del.___props().where;
+		const where: WhereCondition[] = del.___props().where;
 		expect(where.length).toEqual(2);
 		expect(where[0]).toEqual(where1);
 		expect(where[1]).toEqual(where2);
@@ -171,41 +147,50 @@ describe('execute', () => {
 
 	test('sqlBuilder should be called once and with correct parameters if no dbStructure specified', async () => {
 		const tableName: string = 'users';
-		const del = new Delete(config).from(tableName).where('name', WhereOperator.Equal, null);
-		const result = await del.execute();
-		const props = del.___props();
+		const where1: WhereCondition = { field: 'name', operator: WhereOperator.Equal, value: null };
+		const del: Delete = new Delete(config).from(tableName).conditions(where1);
 
-		expect(sqlBuilder.getDelete).toHaveBeenCalledTimes(1);
-		expect(sqlBuilder.getDelete).toHaveBeenCalledWith(tableName, props.where, {});
+		await del.execute().then(() => {
+			expect(getDelete).toHaveBeenCalledTimes(1);
+			expect(getDelete).toHaveBeenCalledWith(tableName, [where1], {});
+		});
 	});
 
 	test('sqlBuilder should be called once and with correct parameters if dbStructure is specified', async () => {
 		const tableName: string = 'users';
-		const del = new Delete(config, dbStructure).from(tableName).where('name', WhereOperator.Equal, null);
-		const result = await del.execute();
-		const props = del.___props();
+		const where1: WhereCondition = { field: 'name', operator: WhereOperator.Equal, value: null };
+		const del: Delete = new Delete(config, dbStructure).from(tableName).conditions(where1);
 
-		expect(sqlBuilder.getDelete).toHaveBeenCalledTimes(1);
-		expect(sqlBuilder.getDelete).toHaveBeenCalledWith(tableName, props.where, usersFieldsMap);
+		await del.execute().then(() => {
+			expect(mockGetDelete).toHaveBeenCalledTimes(1);
+			expect(mockGetDelete).toHaveBeenCalledWith(tableName, [where1], usersFieldsMap);
+		});
 	});
 
 	test('mysql should be called once and with correct parameters', async () => {
 		const tableName: string = 'users';
-		const del = new Delete(config).from(tableName).where('name', WhereOperator.Equal, null);
-		const result = await del.execute();
+		const del: Delete = new Delete(config).from(tableName).where('name', WhereOperator.Equal, null);
 
-		expect(mysql.query).toHaveBeenCalledTimes(1);
-		expect(mysql.query).toHaveBeenCalledWith(config, sql);
+		await del.execute().then(() => {
+			expect(mockMySqlQuery).toHaveBeenCalledTimes(1);
+			expect(mockMySqlQuery).toHaveBeenCalledWith(config, sql);
+		});
 	});
 
 	test('should return falsy status and error message result if error was thrown by mysql', async () => {
-		const tableName: string = errorTable;
-		const del = new Delete(config, dbStructure).from(tableName).where('name', WhereOperator.Equal, null);
-		const result = await del.execute();
+		const tableName: string = 'table';
+		const errorMessage: string = 'Error message';
+		const del: Delete = new Delete(config, dbStructure).from(tableName).where('name', WhereOperator.Equal, null);
 
-		expect(result.status).toBeFalsy();
-		expect(result.rows).toBeUndefined();
-		expect(result.items).toBeUndefined();
-		expect(result.message).toEqual(errorMessage);
+		mockMySqlQuery.mockImplementationOnce(() => {
+			throw new Error(errorMessage);
+		});
+
+		await del.execute().then((result) => {
+			expect(result.status).toBeFalsy();
+			expect(result.rows).toBeUndefined();
+			expect(result.items).toBeUndefined();
+			expect(result.message).toEqual(errorMessage);
+		});
 	});
 });

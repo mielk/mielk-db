@@ -1,12 +1,11 @@
 import { DbStructure, IFieldsManager } from '../models/fields.js';
-import { ConnectionData, OrderRule } from '../models/sql.js';
+import { ConnectionData } from '../models/sql.js';
 import { MySqlResponse, QueryResponse } from '../models/responses.js';
 import { WhereCondition, WhereOperator } from '../models/sql.js';
 import { query } from '../mysql.js';
 import sqlBuilder from '../sqlBuilder.js';
 import { DbFieldsMap } from '../models/fields.js';
 import FieldsManagerFactory from '../factories/FieldsManagerFactory.js';
-import { DbRecordSet } from '../models/records.js';
 
 export class Delete {
 	private _connectionData: ConnectionData;

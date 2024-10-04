@@ -6,24 +6,7 @@ const dbStructure: DbStructure = {
 	users: {
 		tableName: 'users',
 		key: 'id',
-		fieldsMap: {
-			id: 'user_id',
-			name: 'name',
-			isActive: 'is_active',
-		},
-	},
-	userLanguages: {
-		tableName: 'user_languages',
-		key: 'id',
-		fieldsMap: {
-			id: 'user_language_id',
-			userId: 'user_id',
-			languageId: 'language_id',
-		},
-		foreignKeys: [
-			{ field: 'userId', table: 'users' },
-			{ field: 'languageId', table: 'languages' },
-		],
+		fieldsMap: {},
 	},
 };
 

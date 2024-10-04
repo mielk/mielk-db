@@ -81,13 +81,14 @@ export class Select {
 	execute = async (): Promise<MySqlResponse> => {
 		this.validate();
 
-		const fieldsMap: DbFieldsMap = this._fieldsManager?.getFieldsMap(this._from) || {};
+		const fieldsManager = this._fieldsManager;
+		const fieldsMap: DbFieldsMap = fieldsManager?.getFieldsMap(this._from) || {};
 		const sql: string = sqlBuilder.getSelect(this._fields, this._from, this._where, this._order, fieldsMap);
 
 		try {
 			const result: QueryResponse = await query(this._connectionData, sql);
-			const items: DbRecordSet = this._fieldsManager
-				? this._fieldsManager.convertRecordset(this._from, result.items)
+			const items: DbRecordSet = fieldsManager
+				? fieldsManager.convertRecordset(this._from, result.items)
 				: result.items;
 			return {
 				status: true,

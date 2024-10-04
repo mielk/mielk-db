@@ -2,19 +2,15 @@ import db from '../src/db';
 import { ConnectionData } from '../src/models/sql';
 import { Update } from '../src/actions/update';
 import { Select } from '../src/actions/select';
-import { FieldsManager } from '../src/fieldsManager';
+import { Delete } from '../src/actions/delete';
+import { Insert } from '../src/actions/insert';
 import { DbFieldsMap, DbStructure } from '../src/models/fields';
 
-const host: string = 'localhost'; // Replace with the server address
-const database: string = 'mydatabase'; // Replace with the database name
-const username: string = 'myusername'; // Replace with the username
-const password: string = 'mypassword'; // Replace with the password
-
 const config: ConnectionData = {
-	host: host,
-	database: database,
-	user: username,
-	password: password,
+	host: 'host',
+	database: 'database',
+	user: 'username',
+	password: 'password',
 };
 
 const itemsFieldsMap: DbFieldsMap = { id: 'item_id', name: 'item_name' };
@@ -34,13 +30,13 @@ const dbStructure: DbStructure = {
 
 describe('update', () => {
 	test('should create new instance of Update class with fieldsManager if dbStructure is given as a parameter', () => {
-		const update = db(config, dbStructure).update();
+		const update: Update = db(config, dbStructure).update();
 		expect(update).toBeInstanceOf(Update);
 		expect(update.___props().fieldsManager.___getDbStructure()).toEqual(dbStructure);
 	});
 
 	test('should create new instance of Update class without fieldsMap if not given as a parameter', () => {
-		const update = db(config).update();
+		const update: Update = db(config).update();
 		expect(update).toBeInstanceOf(Update);
 		expect(update.___props().fieldsMap).toBeUndefined();
 	});
@@ -48,14 +44,42 @@ describe('update', () => {
 
 describe('select', () => {
 	test('should create new instance of Select class with fieldsMap if given as a parameter', () => {
-		const select = db(config, dbStructure).select();
+		const select: Select = db(config, dbStructure).select();
 		expect(select).toBeInstanceOf(Select);
 		expect(select.___props().fieldsManager.___getDbStructure()).toEqual(dbStructure);
 	});
 
 	test('should create new instance of Select class without fieldsMap if not given as a parameter', () => {
-		const select = db(config).select();
+		const select: Select = db(config).select();
 		expect(select).toBeInstanceOf(Select);
 		expect(select.___props().fieldsMap).toBeUndefined();
+	});
+});
+
+describe('delete', () => {
+	test('should create new instance of Delete class with fieldsMap if given as a parameter', () => {
+		const del: Delete = db(config, dbStructure).delete();
+		expect(del).toBeInstanceOf(Delete);
+		expect(del.___props().fieldsManager.___getDbStructure()).toEqual(dbStructure);
+	});
+
+	test('should create new instance of Delete class without fieldsMap if not given as a parameter', () => {
+		const del: Delete = db(config).delete();
+		expect(del).toBeInstanceOf(Delete);
+		expect(del.___props().fieldsMap).toBeUndefined();
+	});
+});
+
+describe('insert', () => {
+	test('should create new instance of Insert class with fieldsMap if given as a parameter', () => {
+		const insert: Insert = db(config, dbStructure).insert();
+		expect(insert).toBeInstanceOf(Insert);
+		expect(insert.___props().fieldsManager.___getDbStructure()).toEqual(dbStructure);
+	});
+
+	test('should create new instance of Insert class without fieldsMap if not given as a parameter', () => {
+		const insert: Insert = db(config).insert();
+		expect(insert).toBeInstanceOf(Insert);
+		expect(insert.___props().fieldsMap).toBeUndefined();
 	});
 });

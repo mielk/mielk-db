@@ -1,4 +1,4 @@
-class DbConnectionError extends Error {
+export class DbConnectionError extends Error {
 	constructor(msg: string) {
 		super(msg);
 		Object.setPrototypeOf(this, DbConnectionError.prototype);

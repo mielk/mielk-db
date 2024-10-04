@@ -1,21 +1,21 @@
-import { FieldPacket, OkPacket, RowDataPacket, createConnection } from 'mysql2/promise';
-import { query } from '../src/mysql';
+import { FieldPacket, OkPacket, ResultSetHeader, RowDataPacket, createConnection } from 'mysql2/promise';
 import { ConnectionData, RequestType } from '../src/models/sql';
 import { ObjectOfPrimitives } from '../src/models/common';
 import { QueryResponse } from '../src/models/responses';
+import { query } from '../src/mysql';
 import utils from '../src/utils';
+import { DbConnectionError } from '../src/errors/DbConnectionError';
+import { SqlProcessingError } from '../src/errors/SqlProcessingError';
 
-const host: string = 'localhost'; // Replace with the server address
-const database: string = 'mydatabase'; // Replace with the database name
-const username: string = 'myusername'; // Replace with the username
-const password: string = 'mypassword'; // Replace with the password
-
-const invalidSql: string = 'SELECT * FROM non-existing table';
 const config: ConnectionData = {
-	host: host,
-	database: database,
-	user: username,
-	password: password,
+	host: 'host',
+	database: 'database',
+	user: 'username',
+	password: 'password',
+};
+
+const throwErr = (err: Error) => () => {
+	throw err;
 };
 
 const mockFactory = (() => {
@@ -41,19 +41,17 @@ const mockFactory = (() => {
 		});
 	}
 
-	function createOkPacket(rows: number, id: number): OkPacket {
+	function createResultSetHeader(rows: number, id: number): ResultSetHeader {
 		return Object.create({
 			constructor: {
-				name: 'OkPacket',
+				name: 'ResultSetHeader',
 			},
 			fieldCount: 0,
 			affectedRows: rows,
-			changedRows: rows,
 			insertId: id,
 			serverStatus: 2,
 			warningCount: 0,
-			message: '',
-			procotol41: false,
+			info: '',
 		});
 	}
 
@@ -77,54 +75,76 @@ const mockFactory = (() => {
 	];
 
 	const rowDataPackets: RowDataPacket[] = [
-		createRowDataPacket({ id: 1, name: 'Adam', isActive: true }),
-		createRowDataPacket({ id: 2, name: 'Bartek', isActive: false }),
-		createRowDataPacket({ id: 3, name: 'Czesiek', isActive: true }),
+		createRowDataPacket({ user_id: 1, user_name: 'Adam', is_active: true }),
+		createRowDataPacket({ user_id: 2, user_name: 'Bartek', is_active: false }),
+		createRowDataPacket({ user_id: 3, user_name: 'Czesiek', is_active: true }),
 	];
 
 	return {
 		fieldPackets,
 		rowDataPackets,
-		createOkPacket,
+		createResultSetHeader,
 	};
 })();
 
-jest.mock('mysql2/promise', () => {
-	return {
-		createConnection: jest.fn().mockResolvedValue({
-			execute: jest.fn().mockImplementation((sql: string) => {
-				if (sql === invalidSql) throw new Error();
-				const requestType = utils.getRequestTypeFromSql(sql);
-				switch (requestType) {
-					case RequestType.Select:
-						return [mockFactory.rowDataPackets, mockFactory.fieldPackets];
-					case RequestType.Update:
-						return [mockFactory.createOkPacket(3, 0), undefined];
-					case RequestType.Insert:
-						return [mockFactory.createOkPacket(1, 1), undefined];
-					case RequestType.Delete:
-						return [mockFactory.createOkPacket(1, 0), undefined];
-					default:
-						return [undefined, undefined];
-				}
-			}),
-		}),
-	};
-});
+jest.mock('mysql2/promise', () => ({ createConnection: jest.fn() }));
+const mockCreateConnection: jest.MockedFunction<any> = createConnection as jest.MockedFunction<any>;
+const mockExecute: jest.MockedFunction<any> = jest.fn();
+
+// jest.mock('mysql2/promise', () => {
 
 describe('query', () => {
 	afterEach(() => {
 		jest.clearAllMocks();
 	});
 
+	test('re-throw an error if connection could not been established', async () => {
+		const error: Error = new Error('Connection failure');
+		const expected: Error = new Error('Error while trying to establish connection | ' + error.message);
+		mockCreateConnection.mockImplementation(throwErr(error));
+
+		await query(config, '').catch((err) => {
+			expect(err instanceof DbConnectionError).toBeTruthy();
+			expect(err.message).toEqual(expected.message);
+		});
+	});
+
+	test('re-throw an error if connection was established but there was an error in SQL', async () => {
+		const err: Error = new Error('Error: SQL error');
+		const expected: Error = new SqlProcessingError('Error while processing given SQL | ' + err.message);
+		mockCreateConnection.mockResolvedValue({
+			execute: jest.fn(throwErr(err)),
+		});
+
+		await query(config, '').catch((err) => {
+			expect(err instanceof SqlProcessingError).toBeTruthy();
+			expect(err.message).toEqual(expected.message);
+		});
+	});
+
+	test('mysql2 functions are called only once', async () => {
+		const sql: string = 'sql';
+		mockCreateConnection.mockResolvedValue({
+			execute: mockExecute,
+		});
+
+		await query(config, sql).catch((err) => {});
+
+		expect(createConnection).toHaveBeenCalledTimes(1);
+		expect(createConnection).toHaveBeenCalledWith(config);
+		expect(mockExecute).toHaveBeenCalledTimes(1);
+		expect(mockExecute).toHaveBeenCalledWith(sql);
+	});
+
 	test('query should handle SELECT statement', async () => {
-		const sql = 'SELECT * FROM users';
-		const results = await query(config, sql);
+		mockCreateConnection.mockResolvedValue({
+			execute: jest.fn().mockResolvedValue([mockFactory.rowDataPackets, mockFactory.fieldPackets]),
+		});
 		const expected: QueryResponse = {
 			items: [
-				{ id: 1, name: 'Adam', isActive: true },
-				{ id: 2, name: 'Bartek', isActive: false },
-				{ id: 3, name: 'Czesiek', isActive: true },
+				{ user_id: 1, user_name: 'Adam', is_active: true },
+				{ user_id: 2, user_name: 'Bartek', is_active: false },
+				{ user_id: 3, user_name: 'Czesiek', is_active: true },
 			],
 			rows: 3,
 			fields: [
@@ -134,18 +154,14 @@ describe('query', () => {
 			],
 		};
 
-		expect(results).toEqual(expected);
-		expect(createConnection).toHaveBeenCalledTimes(1);
-		expect(createConnection).toHaveBeenCalledWith(config);
-
-		const connection = await createConnection(config);
-		expect(connection.execute).toHaveBeenCalledTimes(1);
-		expect(connection.execute).toHaveBeenCalledWith(sql);
+		await expect(query(config, '')).resolves.toEqual(expected);
 	});
 
 	test('query should handle INSERT statement', async () => {
-		const sql = "INSERT INTO users(user_name, is_active) SELECT 'Dawid', 1";
-		const results = await query(config, sql);
+		mockCreateConnection.mockResolvedValue({
+			execute: jest.fn().mockResolvedValue([mockFactory.createResultSetHeader(1, 1), undefined]),
+		});
+
 		const expected: QueryResponse = {
 			items: [],
 			rows: 1,
@@ -153,18 +169,14 @@ describe('query', () => {
 			fields: [],
 		};
 
-		expect(results).toEqual(expected);
-		expect(createConnection).toHaveBeenCalledTimes(1);
-		expect(createConnection).toHaveBeenCalledWith(config);
-
-		const connection = await createConnection(config);
-		expect(connection.execute).toHaveBeenCalledTimes(1);
-		expect(connection.execute).toHaveBeenCalledWith(sql);
+		await expect(query(config, '')).resolves.toEqual(expected);
 	});
 
 	test('query should handle UPDATE statement', async () => {
-		const sql = "UPDATE users SET user_name = 'Edward' WHERE user_id = 4";
-		const results = await query(config, sql);
+		mockCreateConnection.mockResolvedValue({
+			execute: jest.fn().mockResolvedValue([mockFactory.createResultSetHeader(3, 0), undefined]),
+		});
+
 		const expected: QueryResponse = {
 			items: [],
 			rows: 3,
@@ -172,18 +184,14 @@ describe('query', () => {
 			fields: [],
 		};
 
-		expect(results).toEqual(expected);
-		expect(createConnection).toHaveBeenCalledTimes(1);
-		expect(createConnection).toHaveBeenCalledWith(config);
-
-		const connection = await createConnection(config);
-		expect(connection.execute).toHaveBeenCalledTimes(1);
-		expect(connection.execute).toHaveBeenCalledWith(sql);
+		await expect(query(config, '')).resolves.toEqual(expected);
 	});
 
 	test('query should handle DELETE statement', async () => {
-		const sql = 'DELETE FROM users WHERE user_id = 4';
-		const results = await query(config, sql);
+		mockCreateConnection.mockResolvedValue({
+			execute: jest.fn().mockResolvedValue([mockFactory.createResultSetHeader(1, 0), undefined]),
+		});
+
 		const expected: QueryResponse = {
 			items: [],
 			rows: 1,
@@ -191,31 +199,10 @@ describe('query', () => {
 			fields: [],
 		};
 
-		expect(results).toEqual(expected);
-		expect(createConnection).toHaveBeenCalledTimes(1);
-		expect(createConnection).toHaveBeenCalledWith(config);
-
-		const connection = await createConnection(config);
-		expect(connection.execute).toHaveBeenCalledTimes(1);
-		expect(connection.execute).toHaveBeenCalledWith(sql);
-	});
-
-	test('should handle an error when executing an invalid SQL query', async () => {
-		await expect(query(config, invalidSql)).rejects.toThrow();
-		expect(createConnection).toHaveBeenCalledTimes(1);
-		expect(createConnection).toHaveBeenCalledWith(config);
-		const connection = await createConnection(config);
-		expect(connection.execute).toHaveBeenCalledTimes(1);
-		expect(connection.execute).toHaveBeenCalledWith(invalidSql);
+		await expect(query(config, '')).resolves.toEqual(expected);
 	});
 
 	// it('should handle procedures with a single recordset as an output', async () => {});
 
 	// it('should handle procedures with a multiple recordsets as an output', async () => {});
-
-	// it('should handle asynchronous behavior correctly', async () => {});
-
-	// it('should handle different configuration options', async () => {
-
-	// it('should handle performance and scalability', async () => {
 });
