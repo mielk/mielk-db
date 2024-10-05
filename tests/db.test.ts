@@ -1,4 +1,4 @@
-import { Db } from '../src/db';
+import Db from '../src/db';
 import { ConnectionData } from '../src/models/sql';
 import { Update } from '../src/actions/update';
 import { Select } from '../src/actions/select';
