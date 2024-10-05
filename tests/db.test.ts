@@ -1,4 +1,4 @@
-import db from '../src/db';
+import { Db } from '../src/db';
 import { ConnectionData } from '../src/models/sql';
 import { Update } from '../src/actions/update';
 import { Select } from '../src/actions/select';
@@ -30,13 +30,13 @@ const dbStructure: DbStructure = {
 
 describe('update', () => {
 	test('should create new instance of Update class with fieldsManager if dbStructure is given as a parameter', () => {
-		const update: Update = db(config, dbStructure).update();
+		const update: Update = new Db(config, dbStructure).update();
 		expect(update).toBeInstanceOf(Update);
 		expect(update.___props().fieldsManager.___getDbStructure()).toEqual(dbStructure);
 	});
 
 	test('should create new instance of Update class without fieldsMap if not given as a parameter', () => {
-		const update: Update = db(config).update();
+		const update: Update = new Db(config).update();
 		expect(update).toBeInstanceOf(Update);
 		expect(update.___props().fieldsMap).toBeUndefined();
 	});
@@ -44,13 +44,13 @@ describe('update', () => {
 
 describe('select', () => {
 	test('should create new instance of Select class with fieldsMap if given as a parameter', () => {
-		const select: Select = db(config, dbStructure).select();
+		const select: Select = new Db(config, dbStructure).select();
 		expect(select).toBeInstanceOf(Select);
 		expect(select.___props().fieldsManager.___getDbStructure()).toEqual(dbStructure);
 	});
 
 	test('should create new instance of Select class without fieldsMap if not given as a parameter', () => {
-		const select: Select = db(config).select();
+		const select: Select = new Db(config).select();
 		expect(select).toBeInstanceOf(Select);
 		expect(select.___props().fieldsMap).toBeUndefined();
 	});
@@ -58,13 +58,13 @@ describe('select', () => {
 
 describe('delete', () => {
 	test('should create new instance of Delete class with fieldsMap if given as a parameter', () => {
-		const del: Delete = db(config, dbStructure).delete();
+		const del: Delete = new Db(config, dbStructure).delete();
 		expect(del).toBeInstanceOf(Delete);
 		expect(del.___props().fieldsManager.___getDbStructure()).toEqual(dbStructure);
 	});
 
 	test('should create new instance of Delete class without fieldsMap if not given as a parameter', () => {
-		const del: Delete = db(config).delete();
+		const del: Delete = new Db(config).delete();
 		expect(del).toBeInstanceOf(Delete);
 		expect(del.___props().fieldsMap).toBeUndefined();
 	});
@@ -72,13 +72,13 @@ describe('delete', () => {
 
 describe('insert', () => {
 	test('should create new instance of Insert class with fieldsMap if given as a parameter', () => {
-		const insert: Insert = db(config, dbStructure).insert();
+		const insert: Insert = new Db(config, dbStructure).insert();
 		expect(insert).toBeInstanceOf(Insert);
 		expect(insert.___props().fieldsManager.___getDbStructure()).toEqual(dbStructure);
 	});
 
 	test('should create new instance of Insert class without fieldsMap if not given as a parameter', () => {
-		const insert: Insert = db(config).insert();
+		const insert: Insert = new Db(config).insert();
 		expect(insert).toBeInstanceOf(Insert);
 		expect(insert.___props().fieldsMap).toBeUndefined();
 	});
