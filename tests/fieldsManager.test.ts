@@ -1,5 +1,5 @@
 import { FieldsManager } from '../src/fieldsManager';
-import { DbFieldsMap, DbStructure, DbTable } from '../src/models/fields';
+import { DbStructure } from '../src/models/fields';
 import { DbRecordSet, MultiRecordSet } from '../src/models/records';
 
 const dbStructure: DbStructure = {

@@ -5,7 +5,7 @@ import { Insert } from './actions/insert.js';
 import { DbStructure } from './models/fields.js';
 import { ConnectionData } from './models/sql.js';
 
-export class Db {
+export default class Db {
 	constructor(private connection: ConnectionData, private structure?: DbStructure) {}
 
 	select = () => new Select(this.connection, this.structure);

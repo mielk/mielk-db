@@ -1,5 +1,5 @@
-import db from './db.js';
+import Db from './db.js';
 
-export { db };
+export { Db };
 
-export default { db };
+export default { Db };

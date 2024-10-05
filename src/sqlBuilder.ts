@@ -1,6 +1,6 @@
 import { escape } from 'mysql2/promise';
 import { WhereCondition, OrderRule, WhereOperator } from './models/sql.js';
-import { strings, objects, variables } from 'mielk-fn';
+import { strings, variables } from 'mielk-fn';
 import { ObjectOfPrimitives } from './models/common.js';
 import { DbFieldsMap } from './models/fields.js';
 
