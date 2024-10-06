@@ -1,24 +1,20 @@
 import { ObjectOfAny } from 'mielk-fn/lib/models/common.js';
-import { DbStructure, IFieldsManager } from '../models/fields.js';
 import { ConnectionData } from '../models/sql.js';
 import { MySqlResponse, QueryResponse } from '../models/responses.js';
 import { WhereCondition, WhereOperator } from '../models/sql.js';
 import { query } from '../mysql.js';
-import { DbFieldsMap } from '../models/fields.js';
+import { TableFieldsMap } from '../models/fields.js';
 import sqlBuilder from '../sqlBuilder.js';
-import FieldsManagerFactory from '../factories/FieldsManagerFactory.js';
 
 export class Delete {
 	private _connectionData: ConnectionData;
-	private _fieldsManager?: IFieldsManager;
 	//--------------------------------------
 	private _from: string = '';
 	private _where: WhereCondition[] = [];
 	//--------------------------------------
 
-	constructor(connectionData: ConnectionData, dbStructure?: DbStructure) {
+	constructor(connectionData: ConnectionData) {
 		this._connectionData = connectionData;
-		if (dbStructure) this._fieldsManager = FieldsManagerFactory.create(dbStructure);
 	}
 
 	/* Only for testing purposes */
@@ -26,7 +22,6 @@ export class Delete {
 		return {
 			from: this._from,
 			where: this._where,
-			fieldsManager: this._fieldsManager,
 		};
 	}
 
@@ -55,11 +50,10 @@ export class Delete {
 		return this;
 	}
 
-	execute = async (): Promise<MySqlResponse> => {
+	execute = async (fieldsMap?: TableFieldsMap): Promise<MySqlResponse> => {
 		this.validate();
 
-		const fieldsMap: DbFieldsMap = this._fieldsManager?.getFieldsMap(this._from) || {};
-		const sql: string = sqlBuilder.getDelete(this._from, this._where, fieldsMap);
+		const sql: string = sqlBuilder.getDelete(this._from, this._where, fieldsMap || {});
 
 		try {
 			const result: QueryResponse = await query(this._connectionData, sql);

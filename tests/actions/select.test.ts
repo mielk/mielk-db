@@ -1,5 +1,5 @@
 import { ConnectionData, WhereCondition, WhereOperator, RequestType, OrderRule } from '../../src/models/sql';
-import { DbFieldsMap, DbStructure } from '../../src/models/fields';
+import { TableFieldsMap, DbStructure } from '../../src/models/fields';
 import { Select } from '../../src/actions/select';
 import { query } from '../../src/mysql';
 import { getSelect } from '../../src/sqlBuilder';
@@ -12,19 +12,11 @@ const config: ConnectionData = {
 	password: 'password',
 };
 
-const itemsFieldsMap: DbFieldsMap = { id: 'item_id', name: 'item_name' };
-const usersFieldsMap: DbFieldsMap = { id: 'user_id', name: 'user_name', isActive: 'is_active' };
-const structureItem = (table: string, fieldsMap: DbFieldsMap) => {
-	return {
-		table,
-		view: table,
-		key: 'id',
-		fieldsMap,
-	};
-};
-const dbStructure: DbStructure = {
-	items: structureItem('items', itemsFieldsMap),
-	users: structureItem('users', usersFieldsMap),
+const usersTable: string = 'users';
+const usersFieldsMap: TableFieldsMap = {
+	id: 'user_id',
+	name: 'user_name',
+	isActive: 'is_active',
 };
 
 const sql: string = 'SELECT';
@@ -41,17 +33,11 @@ const convertedRecordset = [
 
 /* MOCKS */
 
-const mockFieldsManager = {
-	___getDbStructure: jest.fn(() => dbStructure),
-	getFieldsMap: jest.fn((name: string) => usersFieldsMap),
-	getFieldName: jest.fn((name: string, property: string) => {
-		const map: Record<string, string> = { user_id: 'id', user_name: 'name' };
-		return map[property] || 'field';
-	}),
+const mockFieldsMapper = {
 	convertRecordset: jest.fn(() => convertedRecordset),
 };
-jest.mock('../../src/factories/FieldsManagerFactory', () => ({
-	create: jest.fn(() => mockFieldsManager),
+jest.mock('../../src/factories/FieldsMapperFactory', () => ({
+	create: jest.fn(() => mockFieldsMapper),
 }));
 jest.mock('../../src/sqlBuilder', () => ({ getSelect: jest.fn() }));
 jest.mock('../../src/mysql', () => ({ query: jest.fn(() => ({ status: true, rows: 2, items: originalRecordset })) }));
@@ -60,16 +46,9 @@ const mockGetSelect: jest.MockedFunction<any> = getSelect as jest.MockedFunction
 const mockMySqlQuery: jest.MockedFunction<any> = query as jest.MockedFunction<any>;
 
 describe('constructor', () => {
-	test('should create a new instance of Select class with fieldsManager if dbStructure is given as a parameter', () => {
-		const select: Select = new Select(config, dbStructure);
+	test('should create a new instance of Select class', () => {
+		const select: Select = new Select(config);
 		expect(select).toBeInstanceOf(Select);
-		expect(select.___props().fieldsManager.___getDbStructure()).toEqual(dbStructure);
-	});
-
-	test('should create a new instance of Select class without fieldsManager if not given as a parameter', () => {
-		const update = new Select(config);
-		expect(update).toBeInstanceOf(Select);
-		expect(update.___props().fieldsManager).toBeUndefined();
 	});
 });
 
@@ -244,7 +223,23 @@ describe('execute', () => {
 		);
 	});
 
-	test('sqlBuilder should be called once and with correct parameters if no dbStructure specified', async () => {
+	test('sqlBuilder should be called once and with correct parameters if fieldsMap is not specified', async () => {
+		const wheres: WhereCondition[] = [
+			{ field: 'name', operator: WhereOperator.Equal, value: 'John' },
+			{ field: 'age', operator: WhereOperator.Equal, value: null },
+		];
+		const order: OrderRule[] = [{ field: 'name', ascending: true }];
+
+		const select: Select = new Select(config).from(usersTable).conditions(wheres).order(order);
+		const props = select.___props();
+
+		await select.execute().then(() => {
+			expect(mockGetSelect).toHaveBeenCalledTimes(1);
+			expect(mockGetSelect).toHaveBeenCalledWith(props.fields, usersTable, props.where, props.order, {});
+		});
+	});
+
+	test('sqlBuilder should be called once and with correct parameters if fieldsMap is specified', async () => {
 		const tableName: string = 'users';
 		const wheres: WhereCondition[] = [
 			{ field: 'name', operator: WhereOperator.Equal, value: 'John' },
@@ -255,24 +250,7 @@ describe('execute', () => {
 		const select: Select = new Select(config).from(tableName).conditions(wheres).order(order);
 		const props = select.___props();
 
-		await select.execute().then(() => {
-			expect(mockGetSelect).toHaveBeenCalledTimes(1);
-			expect(mockGetSelect).toHaveBeenCalledWith(props.fields, tableName, props.where, props.order, {});
-		});
-	});
-
-	test('sqlBuilder should be called once and with correct parameters if dbStructure is specified', async () => {
-		const tableName: string = 'users';
-		const wheres: WhereCondition[] = [
-			{ field: 'name', operator: WhereOperator.Equal, value: 'John' },
-			{ field: 'age', operator: WhereOperator.Equal, value: null },
-		];
-		const order: OrderRule[] = [{ field: 'name', ascending: true }];
-
-		const select: Select = new Select(config, dbStructure).from(tableName).conditions(wheres).order(order);
-		const props = select.___props();
-
-		await select.execute().then(() => {
+		await select.execute(usersFieldsMap).then(() => {
 			expect(mockGetSelect).toHaveBeenCalledTimes(1);
 			expect(mockGetSelect).toHaveBeenCalledWith(props.fields, tableName, props.where, props.order, usersFieldsMap);
 		});
@@ -289,35 +267,46 @@ describe('execute', () => {
 		});
 	});
 
-	test('if fieldsManager is specified it should be invoked on the query result', async () => {
+	test('if fieldsMap is specified, FieldsMapper should be invoked on the query result', async () => {
 		const tableName: string = 'users';
-		const select: Select = new Select(config, dbStructure).from(tableName);
+		const select: Select = new Select(config).from(tableName);
 
-		await select.execute().then(() => {
-			expect(mockFieldsManager.convertRecordset).toHaveBeenCalledTimes(1);
-			expect(mockFieldsManager.convertRecordset).toHaveBeenCalledWith(tableName, originalRecordset);
+		await select.execute(usersFieldsMap).then(() => {
+			expect(mockFieldsMapper.convertRecordset).toHaveBeenCalledTimes(1);
+			expect(mockFieldsMapper.convertRecordset).toHaveBeenCalledWith(originalRecordset, usersFieldsMap);
 		});
 	});
 
-	test('should return correct result if fieldsManager is specified', async () => {
-		const tableName: string = 'users';
-		const select: Select = new Select(config, dbStructure).from(tableName);
-		const result: MySqlResponse = await select.execute();
-
-		expect(result.status).toBeTruthy();
-		expect(result.rows).toEqual(2);
-		expect(result.items).toEqual(convertedRecordset);
-	});
-
-	test('should return correct result if fieldsManager is not specified', async () => {
+	test('if fieldsMap is specified, FieldsMapper should not be invoked on the query result', async () => {
 		const tableName: string = 'users';
 		const select: Select = new Select(config).from(tableName);
-		const result: MySqlResponse = await select.execute();
 
-		expect(result.status).toBeTruthy();
-		expect(result.rows).toEqual(2);
-		expect(result.items).toEqual(originalRecordset);
-		expect(result.message).toBeUndefined();
+		await select.execute().then(() => {
+			expect(mockFieldsMapper.convertRecordset).toHaveBeenCalledTimes(0);
+		});
+	});
+
+	test('should return correct result if fieldsMap is specified', async () => {
+		const tableName: string = 'users';
+		const select: Select = new Select(config).from(tableName);
+
+		await select.execute(usersFieldsMap).then((response: MySqlResponse) => {
+			expect(response.status).toBeTruthy();
+			expect(response.rows).toEqual(2);
+			expect(response.items).toEqual(convertedRecordset);
+		});
+	});
+
+	test('should return correct result if fieldsMap is not specified', async () => {
+		const tableName: string = 'users';
+		const select: Select = new Select(config).from(tableName);
+
+		await select.execute().then((response: MySqlResponse) => {
+			expect(response.status).toBeTruthy();
+			expect(response.rows).toEqual(2);
+			expect(response.items).toEqual(originalRecordset);
+			expect(response.message).toBeUndefined();
+		});
 	});
 
 	test('should return falsy status and error message result if error was thrown by mysql', async () => {

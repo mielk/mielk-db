@@ -1,5 +1,5 @@
 import { ConnectionData, WhereCondition, WhereOperator } from '../../src/models/sql';
-import { DbFieldsMap, DbStructure } from '../../src/models/fields';
+import { TableFieldsMap } from '../../src/models/fields';
 import { Delete } from '../../src/actions/delete';
 import { query } from '../../src/mysql';
 import { getDelete } from '../../src/sqlBuilder';
@@ -11,37 +11,15 @@ const config: ConnectionData = {
 	password: 'password',
 };
 
-const itemsFieldsMap: DbFieldsMap = { id: 'item_id', name: 'item_name' };
-const usersFieldsMap: DbFieldsMap = { id: 'user_id', name: 'user_name', isActive: 'is_active' };
-const structureItem = (table: string, fieldsMap: DbFieldsMap) => {
-	return {
-		table,
-		view: table,
-		key: 'id',
-		fieldsMap,
-	};
-};
-const dbStructure: DbStructure = {
-	items: structureItem('items', itemsFieldsMap),
-	users: structureItem('users', usersFieldsMap),
+const usersFieldsMap: TableFieldsMap = {
+	id: 'user_id',
+	name: 'user_name',
+	isActive: 'is_active',
 };
 
 const sql: string = 'DELETE';
 
 /* MOCKS */
-
-const mockFieldsManager = {
-	___getDbStructure: jest.fn().mockReturnValue(dbStructure),
-	getFieldsMap: jest.fn().mockReturnValue(usersFieldsMap),
-	getFieldName: jest.fn((name: string, property: string) => {
-		const map: Record<string, string> = { user_id: 'id', user_name: 'name' };
-		return map[property] || 'field';
-	}),
-	convertRecordset: jest.fn(), //() => convertedRecordset),
-};
-jest.mock('../../src/factories/FieldsManagerFactory', () => ({
-	create: jest.fn(() => mockFieldsManager),
-}));
 jest.mock('../../src/sqlBuilder', () => ({
 	getDelete: jest.fn(),
 }));
@@ -56,16 +34,9 @@ mockGetDelete.mockReturnValue(sql);
 mockMySqlQuery.mockResolvedValue({ status: true });
 
 describe('constructor', () => {
-	test('should create new instance of Delete class with fieldsManager if dbStructure is given as a parameter', () => {
-		const del: Delete = new Delete(config, dbStructure);
-		expect(del).toBeInstanceOf(Delete);
-		expect(del.___props().fieldsManager.___getDbStructure()).toEqual(dbStructure);
-	});
-
-	test('should create new instance of Delete class without fieldsManager if not given as a parameter', () => {
+	test('should create new instance of Delete class', () => {
 		const del: Delete = new Delete(config);
 		expect(del).toBeInstanceOf(Delete);
-		expect(del.___props().fieldsManager).toBeUndefined();
 	});
 });
 
@@ -146,7 +117,7 @@ describe('execute', () => {
 		);
 	});
 
-	test('sqlBuilder should be called once and with correct parameters if no dbStructure specified', async () => {
+	test('sqlBuilder should be called once and with correct parameters if fieldsMap is not specified', async () => {
 		const tableName: string = 'users';
 		const where1: WhereCondition = { field: 'name', operator: WhereOperator.Equal, value: null };
 		const del: Delete = new Delete(config).from(tableName).conditions(where1);
@@ -157,12 +128,12 @@ describe('execute', () => {
 		});
 	});
 
-	test('sqlBuilder should be called once and with correct parameters if dbStructure is specified', async () => {
+	test('sqlBuilder should be called once and with correct parameters if fieldsMap is specified', async () => {
 		const tableName: string = 'users';
 		const where1: WhereCondition = { field: 'name', operator: WhereOperator.Equal, value: null };
-		const del: Delete = new Delete(config, dbStructure).from(tableName).conditions(where1);
+		const del: Delete = new Delete(config).from(tableName).conditions(where1);
 
-		await del.execute().then(() => {
+		await del.execute(usersFieldsMap).then(() => {
 			expect(mockGetDelete).toHaveBeenCalledTimes(1);
 			expect(mockGetDelete).toHaveBeenCalledWith(tableName, [where1], usersFieldsMap);
 		});
@@ -181,13 +152,13 @@ describe('execute', () => {
 	test('should return falsy status and error message result if error was thrown by mysql', async () => {
 		const tableName: string = 'table';
 		const errorMessage: string = 'Error message';
-		const del: Delete = new Delete(config, dbStructure).from(tableName).where('name', WhereOperator.Equal, null);
+		const del: Delete = new Delete(config).from(tableName).where('name', WhereOperator.Equal, null);
 
 		mockMySqlQuery.mockImplementationOnce(() => {
 			throw new Error(errorMessage);
 		});
 
-		await del.execute().then((result) => {
+		await del.execute(usersFieldsMap).then((result) => {
 			expect(result.status).toBeFalsy();
 			expect(result.rows).toBeUndefined();
 			expect(result.items).toBeUndefined();

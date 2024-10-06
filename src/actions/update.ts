@@ -1,26 +1,23 @@
 import { ObjectOfAny } from 'mielk-fn/lib/models/common.js';
-import { DbStructure, IFieldsManager } from '../models/fields.js';
 import { ConnectionData } from '../models/sql.js';
 import { MySqlResponse, QueryResponse } from '../models/responses.js';
 import { WhereCondition, WhereOperator } from '../models/sql.js';
 import { DbRecord, DbRecordSet } from '../models/records.js';
 import { query } from '../mysql.js';
 import sqlBuilder from '../sqlBuilder.js';
-import { DbFieldsMap } from '../models/fields.js';
-import FieldsManagerFactory from '../factories/FieldsManagerFactory.js';
+import { TableFieldsMap } from '../models/fields.js';
+import FieldsMapperFactory from '../factories/FieldsMapperFactory.js';
 
 export class Update {
 	private _connectionData: ConnectionData;
-	private _fieldsManager?: IFieldsManager;
 	//--------------------------------------
 	private _from: string = '';
 	private _where: WhereCondition[] = [];
 	private _object: DbRecord = {};
 	//--------------------------------------
 
-	constructor(connectionData: ConnectionData, dbStructure?: DbStructure) {
+	constructor(connectionData: ConnectionData) {
 		this._connectionData = connectionData;
-		if (dbStructure) this._fieldsManager = FieldsManagerFactory.create(dbStructure);
 	}
 
 	___props(): ObjectOfAny {
@@ -28,7 +25,6 @@ export class Update {
 			from: this._from,
 			where: this._where,
 			object: this._object,
-			fieldsManager: this._fieldsManager,
 		};
 	}
 
@@ -61,17 +57,18 @@ export class Update {
 		return this;
 	}
 
-	execute = async (): Promise<MySqlResponse> => {
+	execute = async (fieldsMap?: TableFieldsMap): Promise<MySqlResponse> => {
 		this.validate();
 
-		const fieldsMap: DbFieldsMap = this._fieldsManager?.getFieldsMap(this._from) || {};
-		const sql: string = sqlBuilder.getUpdate(this._from, this._object, this._where, fieldsMap);
+		const sql: string = sqlBuilder.getUpdate(this._from, this._object, this._where, fieldsMap || {});
 
 		try {
 			const result: QueryResponse = await query(this._connectionData, sql);
-			const items: DbRecordSet = this._fieldsManager
-				? this._fieldsManager.convertRecordset(this._from, result.items)
+
+			const items: DbRecordSet = fieldsMap
+				? FieldsMapperFactory.create().convertRecordset(result.items, fieldsMap)
 				: result.items;
+
 			return {
 				status: true,
 				rows: result.rows,

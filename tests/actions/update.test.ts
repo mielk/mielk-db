@@ -1,5 +1,5 @@
 import { ConnectionData, WhereCondition, WhereOperator, RequestType } from '../../src/models/sql';
-import { DbFieldsMap, DbStructure } from '../../src/models/fields';
+import { TableFieldsMap, DbStructure } from '../../src/models/fields';
 import { Update } from '../../src/actions/update';
 import { query } from '../../src/mysql';
 import { getUpdate } from '../../src/sqlBuilder';
@@ -11,9 +11,10 @@ const config: ConnectionData = {
 	password: 'password',
 };
 
-const itemsFieldsMap: DbFieldsMap = { id: 'item_id', name: 'item_name' };
-const usersFieldsMap: DbFieldsMap = { id: 'user_id', name: 'user_name', isActive: 'is_active' };
-const structureItem = (table: string, fieldsMap: DbFieldsMap) => {
+const itemsFieldsMap: TableFieldsMap = { id: 'item_id', name: 'item_name' };
+const usersTable: string = 'users';
+const usersFieldsMap: TableFieldsMap = { id: 'user_id', name: 'user_name', isActive: 'is_active' };
+const structureItem = (table: string, fieldsMap: TableFieldsMap) => {
 	return {
 		table,
 		view: table,
@@ -40,17 +41,11 @@ const convertedRecordset = [
 
 /* MOCKS */
 
-const mockFieldsManager = {
-	___getDbStructure: jest.fn(() => dbStructure),
-	getFieldsMap: jest.fn((name: string) => usersFieldsMap),
-	getFieldName: jest.fn((name: string, property: string) => {
-		const map: Record<string, string> = { user_id: 'id', user_name: 'name' };
-		return map[property] || 'field';
-	}),
+const mockFieldsMapper = {
 	convertRecordset: jest.fn(() => convertedRecordset),
 };
-jest.mock('../../src/factories/FieldsManagerFactory', () => ({
-	create: jest.fn(() => mockFieldsManager),
+jest.mock('../../src/factories/FieldsMapperFactory', () => ({
+	create: jest.fn(() => mockFieldsMapper),
 }));
 jest.mock('../../src/sqlBuilder', () => ({ getUpdate: jest.fn() }));
 jest.mock('../../src/mysql', () => ({ query: jest.fn(() => ({ status: true, rows: 2, items: originalRecordset })) }));
@@ -59,16 +54,9 @@ const mockGetUpdate: jest.MockedFunction<any> = getUpdate as jest.MockedFunction
 const mockMySqlQuery: jest.MockedFunction<any> = query as jest.MockedFunction<any>;
 
 describe('constructor', () => {
-	test('should create new instance of Update class with fieldsManager if dbStructure is given as a parameter', () => {
-		const update: Update = new Update(config, dbStructure);
-		expect(update).toBeInstanceOf(Update);
-		expect(update.___props().fieldsManager.___getDbStructure()).toEqual(dbStructure);
-	});
-
-	test('should create new instance of Update class without fieldsManager if not given as a parameter', () => {
+	test('should create new instance of Update class', () => {
 		const update: Update = new Update(config);
 		expect(update).toBeInstanceOf(Update);
-		expect(update.___props().fieldsManager).toBeUndefined();
 	});
 });
 
@@ -158,52 +146,45 @@ describe('execute', () => {
 	});
 
 	test('should throw an error if invoked without object', async () => {
-		const tableName: string = 'users';
 		const id: number = 5;
-		await expect(new Update(config).from(tableName).where('id', WhereOperator.Equal, id).execute()).rejects.toThrow(
+		await expect(new Update(config).from(usersTable).where('id', WhereOperator.Equal, id).execute()).rejects.toThrow(
 			'UPDATE cannot be executed if [object] has not been set'
 		);
 	});
 
 	test('should throw an error if no WHERE condition is set', async () => {
-		const tableName: string = 'users';
 		const object = { name: 'John', surname: 'Smith' };
-		await expect(new Update(config).from(tableName).object(object).execute()).rejects.toThrow(
+		await expect(new Update(config).from(usersTable).object(object).execute()).rejects.toThrow(
 			'UPDATE cannot be executed without any condition'
 		);
 	});
 
-	test('sqlBuilder should be called once and with correct parameters if no dbStructure specified', async () => {
-		const tableName: string = 'users';
+	test('sqlBuilder should be called once and with correct parameters if fieldsMap is not specified', async () => {
 		const object = { name: 'John', surname: 'Smith' };
 
-		const update: Update = new Update(config).from(tableName).object(object).where('name', WhereOperator.Equal, null);
+		const update: Update = new Update(config).from(usersTable).object(object).where('name', WhereOperator.Equal, null);
 		await update.execute().then(() => {
 			const props = update.___props();
 			expect(getUpdate).toHaveBeenCalledTimes(1);
-			expect(getUpdate).toHaveBeenCalledWith(tableName, props.object, props.where, {});
+			expect(getUpdate).toHaveBeenCalledWith(usersTable, props.object, props.where, {});
 		});
 	});
 
-	test('sqlBuilder should be called once and with correct parameters if dbStructure is specified', async () => {
-		const tableName: string = 'users';
+	test('sqlBuilder should be called once and with correct parameters if fieldsMap is specified', async () => {
 		const object = { name: 'John', surname: 'Smith' };
 
-		const update: Update = new Update(config, dbStructure)
-			.from(tableName)
-			.object(object)
-			.where('name', WhereOperator.Equal, null);
-		await update.execute().then(() => {
+		const update: Update = new Update(config).from(usersTable).object(object).where('name', WhereOperator.Equal, null);
+
+		await update.execute(usersFieldsMap).then(() => {
 			const props = update.___props();
 			expect(getUpdate).toHaveBeenCalledTimes(1);
-			expect(getUpdate).toHaveBeenCalledWith(tableName, props.object, props.where, usersFieldsMap);
+			expect(getUpdate).toHaveBeenCalledWith(usersTable, props.object, props.where, usersFieldsMap);
 		});
 	});
 
 	test('mysql should be called once and with correct parameters', async () => {
-		const tableName: string = 'users';
 		const object = { name: 'John', surname: 'Smith' };
-		const update: Update = new Update(config).from(tableName).object(object).where('name', WhereOperator.Equal, null);
+		const update: Update = new Update(config).from(usersTable).object(object).where('name', WhereOperator.Equal, null);
 
 		mockGetUpdate.mockReturnValue(sql);
 
@@ -213,41 +194,41 @@ describe('execute', () => {
 		});
 	});
 
-	test('if fieldsManager is specified it should be invoked on the query result', async () => {
-		const tableName: string = 'users';
+	test('if fieldsMap is specified, FieldsMapper should be invoked on the query result', async () => {
 		const object = { name: 'John', surname: 'Smith' };
-		const update: Update = new Update(config, dbStructure)
-			.from(tableName)
-			.object(object)
-			.where('name', WhereOperator.Equal, null);
+		const update: Update = new Update(config).from(usersTable).object(object).where('name', WhereOperator.Equal, null);
 
-		await update.execute().then(() => {
-			expect(mockFieldsManager.convertRecordset).toHaveBeenCalledTimes(1);
-			expect(mockFieldsManager.convertRecordset).toHaveBeenCalledWith(tableName, originalRecordset);
+		await update.execute(usersFieldsMap).then(() => {
+			expect(mockFieldsMapper.convertRecordset).toHaveBeenCalledTimes(1);
+			expect(mockFieldsMapper.convertRecordset).toHaveBeenCalledWith(originalRecordset, usersFieldsMap);
 		});
 	});
 
-	test('should return correct result if fieldsManager is specified', async () => {
-		const tableName: string = 'users';
+	test('if fieldsMap is not specified, FieldsMapper should not be invoked on the query result', async () => {
+		const object = { name: 'John', surname: 'Smith' };
+		const update: Update = new Update(config).from(usersTable).object(object).where('name', WhereOperator.Equal, null);
+
+		await update.execute().then(() => {
+			expect(mockFieldsMapper.convertRecordset).toHaveBeenCalledTimes(0);
+		});
+	});
+
+	test('should return correct result if fieldsMap is specified', async () => {
 		const object = { name: 'John', surname: 'Smith' };
 
-		const update: Update = new Update(config, dbStructure)
-			.from(tableName)
-			.object(object)
-			.where('name', WhereOperator.Equal, null);
+		const update: Update = new Update(config).from(usersTable).object(object).where('name', WhereOperator.Equal, null);
 
-		await update.execute().then((result) => {
+		await update.execute(usersFieldsMap).then((result) => {
 			expect(result.status).toBeTruthy();
 			expect(result.rows).toEqual(2);
 			expect(result.items).toEqual(convertedRecordset);
 		});
 	});
 
-	test('should return correct result if fieldsManager is not specified', async () => {
-		const tableName: string = 'users';
+	test('should return correct result if fieldsMap is not specified', async () => {
 		const object = { name: 'John', surname: 'Smith' };
 
-		const update: Update = new Update(config).from(tableName).object(object).where('name', WhereOperator.Equal, null);
+		const update: Update = new Update(config).from(usersTable).object(object).where('name', WhereOperator.Equal, null);
 
 		await update.execute().then((result) => {
 			expect(result.status).toBeTruthy();
@@ -260,10 +241,7 @@ describe('execute', () => {
 	test('should return falsy status and error message result if error was thrown by mysql', async () => {
 		const errorMessage: string = 'Error message';
 		const object = { name: 'John', surname: 'Smith' };
-		const update: Update = new Update(config, dbStructure)
-			.from('table')
-			.object(object)
-			.where('name', WhereOperator.Equal, null);
+		const update: Update = new Update(config).from('table').object(object).where('name', WhereOperator.Equal, null);
 
 		mockMySqlQuery.mockImplementation(() => {
 			throw new Error(errorMessage);

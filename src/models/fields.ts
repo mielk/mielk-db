@@ -4,13 +4,15 @@ export type DbStructure = Record<string, DbTable>;
 
 export interface DbTable {
 	table: string;
-	view: string;
+	view?: string;
 	key: string;
-	fieldsMap: DbFieldsMap;
+	fieldsMap: TableFieldsMap;
 	foreignKeys?: DbForeignKey[];
 }
 
-export type DbFieldsMap = Record<string, string>;
+export type TableFieldsMap = Record<string, string>;
+
+export type DbFieldsMap = Record<string, TableFieldsMap>;
 
 export interface DbForeignKey {
 	field: string;
@@ -22,9 +24,7 @@ export interface DbField {
 	type?: number;
 }
 
-export interface IFieldsManager {
-	getFieldsMap: (name: string) => Record<string, string> | null;
-	getFieldName: (name: string, property: string) => string | null;
-	convertRecordset: (name: string, recordset: DbRecordSet) => DbRecordSet;
-	// convertMultiRecordset: (multiRs: MultiRecordSet) => MultiRecordSet;
+export interface IFieldsMapper {
+	convertRecordset: (recordset: DbRecordSet, fieldsMap: TableFieldsMap) => DbRecordSet;
+	convertMultiRecordset: (rescordsets: MultiRecordSet, fieldsMaps: DbFieldsMap) => MultiRecordSet;
 }

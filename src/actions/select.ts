@@ -1,17 +1,15 @@
 import { ObjectOfAny } from 'mielk-fn/lib/models/common.js';
-import { DbStructure, IFieldsManager } from '../models/fields.js';
 import { ConnectionData, OrderRule } from '../models/sql.js';
 import { MySqlResponse, QueryResponse } from '../models/responses.js';
 import { WhereCondition, WhereOperator } from '../models/sql.js';
 import { query } from '../mysql.js';
+import { TableFieldsMap } from '../models/fields.js';
 import sqlBuilder from '../sqlBuilder.js';
-import { DbFieldsMap } from '../models/fields.js';
-import FieldsManagerFactory from '../factories/FieldsManagerFactory.js';
+import FieldsMapperFactory from '../factories/FieldsMapperFactory.js';
 import { DbRecordSet } from '../models/records.js';
 
 export class Select {
 	private _connectionData: ConnectionData;
-	private _fieldsManager?: IFieldsManager;
 	//--------------------------------------
 	private _from: string = '';
 	private _where: WhereCondition[] = [];
@@ -19,9 +17,8 @@ export class Select {
 	private _order: OrderRule[] = [];
 	//--------------------------------------
 
-	constructor(connectionData: ConnectionData, dbStructure?: DbStructure) {
+	constructor(connectionData: ConnectionData) {
 		this._connectionData = connectionData;
-		if (dbStructure) this._fieldsManager = FieldsManagerFactory.create(dbStructure);
 	}
 
 	/* Only for testing purposes */
@@ -31,7 +28,6 @@ export class Select {
 			where: this._where,
 			fields: this._fields,
 			order: this._order,
-			fieldsManager: this._fieldsManager,
 		};
 	}
 
@@ -79,18 +75,17 @@ export class Select {
 		return this;
 	}
 
-	execute = async (): Promise<MySqlResponse> => {
+	execute = async (fieldsMap?: TableFieldsMap): Promise<MySqlResponse> => {
 		this.validate();
 
-		const fieldsManager = this._fieldsManager;
-		const fieldsMap: DbFieldsMap = fieldsManager?.getFieldsMap(this._from) || {};
-		const sql: string = sqlBuilder.getSelect(this._fields, this._from, this._where, this._order, fieldsMap);
+		const sql: string = sqlBuilder.getSelect(this._fields, this._from, this._where, this._order, fieldsMap || {});
 
 		try {
 			const result: QueryResponse = await query(this._connectionData, sql);
-			const items: DbRecordSet = fieldsManager
-				? fieldsManager.convertRecordset(this._from, result.items)
+			const items: DbRecordSet = fieldsMap
+				? FieldsMapperFactory.create().convertRecordset(result.items, fieldsMap)
 				: result.items;
+
 			return {
 				status: true,
 				rows: result.rows,

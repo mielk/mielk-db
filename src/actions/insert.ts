@@ -1,31 +1,27 @@
-import { ObjectOfAny, ObjectOfPrimitives } from 'mielk-fn/lib/models/common.js';
-import { DbStructure, IFieldsManager } from '../models/fields.js';
+import { ObjectOfAny } from 'mielk-fn/lib/models/common.js';
 import { ConnectionData, WhereOperator } from '../models/sql.js';
 import { MySqlResponse, QueryResponse } from '../models/responses.js';
 import { DbRecord, DbRecordSet } from '../models/records.js';
 import { query } from '../mysql.js';
-import { DbFieldsMap } from '../models/fields.js';
+import { TableFieldsMap } from '../models/fields.js';
 import sqlBuilder from '../sqlBuilder.js';
-import FieldsManagerFactory from '../factories/FieldsManagerFactory.js';
+import FieldsMapperFactory from '../factories/FieldsMapperFactory.js';
 
 export class Insert {
 	private _connectionData: ConnectionData;
-	private _fieldsManager?: IFieldsManager;
 	//--------------------------------------
 	private _into: string = '';
 	private _object: DbRecord = {};
 	//--------------------------------------
 
-	constructor(connectionData: ConnectionData, dbStructure?: DbStructure) {
+	constructor(connectionData: ConnectionData) {
 		this._connectionData = connectionData;
-		if (dbStructure) this._fieldsManager = FieldsManagerFactory.create(dbStructure);
 	}
 
 	___props(): ObjectOfAny {
 		return {
 			into: this._into,
 			object: this._object,
-			fieldsManager: this._fieldsManager,
 		};
 	}
 
@@ -41,11 +37,10 @@ export class Insert {
 		return this;
 	}
 
-	execute = async (): Promise<MySqlResponse> => {
+	execute = async (fieldsMap?: TableFieldsMap): Promise<MySqlResponse> => {
 		this.validate();
 
-		const fieldsMap: DbFieldsMap = this._fieldsManager?.getFieldsMap(this._into) || {};
-		const sqlInsert: string = sqlBuilder.getInsert(this._into, this._object, fieldsMap);
+		const sqlInsert: string = sqlBuilder.getInsert(this._into, this._object, fieldsMap || {});
 
 		try {
 			const result: QueryResponse = await query(this._connectionData, sqlInsert);
@@ -55,13 +50,15 @@ export class Insert {
 				this._into,
 				[{ field: 'id', operator: WhereOperator.Equal, value: insertId }],
 				undefined,
-				fieldsMap
+				fieldsMap || {}
 			);
 
 			const postCheck: QueryResponse = await query(this._connectionData, sqlSelect);
-			const items: DbRecordSet = this._fieldsManager
-				? this._fieldsManager.convertRecordset(this._into, postCheck.items)
+
+			const items: DbRecordSet = fieldsMap
+				? FieldsMapperFactory.create().convertRecordset(postCheck.items, fieldsMap)
 				: postCheck.items;
+
 			return {
 				status: true,
 				items,

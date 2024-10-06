@@ -1,5 +1,5 @@
 import { ObjectOfPrimitives } from 'mielk-fn/lib/models/common.js';
-import { DbFieldsMap } from '../src/models/fields';
+import { TableFieldsMap } from '../src/models/fields';
 import { WhereOperator, WhereCondition } from '../src/models/sql';
 import builder from '../src/sqlBuilder';
 
@@ -790,7 +790,7 @@ describe('getDeactivate', () => {
 
 	test('should correctly replace field names based on fieldsMap', () => {
 		const where: WhereCondition[] = [{ field: 'id', operator: WhereOperator.Equal, value: 1 }];
-		const fieldsMap: DbFieldsMap = { id: 'user_id', isActive: 'active' };
+		const fieldsMap: TableFieldsMap = { id: 'user_id', isActive: 'active' };
 		const result: string = builder.getDeactivate('users', where, fieldsMap);
 		expect(result).toEqual('UPDATE users SET active = 0 WHERE user_id = 1');
 	});

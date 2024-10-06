@@ -6,13 +6,13 @@ import { DbStructure } from './models/fields.js';
 import { ConnectionData } from './models/sql.js';
 
 export default class Db {
-	constructor(private connection: ConnectionData, private structure?: DbStructure) {}
+	constructor(private connection: ConnectionData) {}
 
-	select = () => new Select(this.connection, this.structure);
+	select = () => new Select(this.connection);
 
-	update = () => new Update(this.connection, this.structure);
+	update = () => new Update(this.connection);
 
-	delete = () => new Delete(this.connection, this.structure);
+	delete = () => new Delete(this.connection);
 
-	insert = () => new Insert(this.connection, this.structure);
+	insert = () => new Insert(this.connection);
 }

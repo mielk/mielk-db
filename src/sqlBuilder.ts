@@ -1,12 +1,12 @@
 import { escape } from 'mysql2/promise';
 import { WhereCondition, OrderRule, WhereOperator } from './models/sql.js';
 import { strings, variables } from 'mielk-fn';
-import { DbFieldsMap } from './models/fields.js';
+import { TableFieldsMap } from './models/fields.js';
 import { DbRecord } from './models/records.js';
 
 const defaultIsActiveField = 'is_active';
 
-let _fieldsMap: DbFieldsMap = {};
+let _fieldsMap: TableFieldsMap = {};
 
 // Errors
 const throwError = {
@@ -42,7 +42,7 @@ const getSelect = (
 	from: string,
 	where: WhereCondition[] = [],
 	order: OrderRule[] = [],
-	fieldsMap: DbFieldsMap
+	fieldsMap: TableFieldsMap
 ): string => {
 	throwError.ifEmptyTableProcName(from, 'from');
 	_fieldsMap = fieldsMap;
@@ -53,7 +53,7 @@ const getSelect = (
 	return strings.clear(`SELECT ${_select} FROM ${from} ${_where} ${_order}`);
 };
 
-const getInsert = (table: string, object: DbRecord, fieldsMap: DbFieldsMap) => {
+const getInsert = (table: string, object: DbRecord, fieldsMap: TableFieldsMap) => {
 	throwError.ifEmptyTableProcName(table, 'table');
 	throwError.ifNotNonEmptyObject(object, 'object');
 	_fieldsMap = fieldsMap;
@@ -64,7 +64,7 @@ const getInsert = (table: string, object: DbRecord, fieldsMap: DbFieldsMap) => {
 	return `INSERT INTO ${table} (${fields}) VALUES (${values})`;
 };
 
-function getUpdate(table: string, object: DbRecord, where: WhereCondition[], fieldsMap: DbFieldsMap): string {
+function getUpdate(table: string, object: DbRecord, where: WhereCondition[], fieldsMap: TableFieldsMap): string {
 	throwError.ifEmptyTableProcName(table, 'table');
 	throwError.ifNotNonEmptyObject(object, 'object');
 	throwError.ifNotNonEmptyArrayOfWhereConditions(where, 'where');
@@ -76,7 +76,7 @@ function getUpdate(table: string, object: DbRecord, where: WhereCondition[], fie
 	return `UPDATE ${table} SET ${_set} WHERE ${_where}`;
 }
 
-function getDelete(table: string, where: WhereCondition[], fieldsMap: DbFieldsMap): string {
+function getDelete(table: string, where: WhereCondition[], fieldsMap: TableFieldsMap): string {
 	throwError.ifEmptyTableProcName(table, 'table');
 	throwError.ifNotNonEmptyArrayOfWhereConditions(where, 'where');
 	_fieldsMap = fieldsMap;
@@ -85,7 +85,7 @@ function getDelete(table: string, where: WhereCondition[], fieldsMap: DbFieldsMa
 	return `DELETE FROM ${table} WHERE ${_where}`;
 }
 
-function getDeactivate(table: string, where: WhereCondition[], fieldsMap: DbFieldsMap): string {
+function getDeactivate(table: string, where: WhereCondition[], fieldsMap: TableFieldsMap): string {
 	throwError.ifEmptyTableProcName(table, 'table');
 	throwError.ifNotNonEmptyArrayOfWhereConditions(where, 'where');
 	_fieldsMap = fieldsMap;
