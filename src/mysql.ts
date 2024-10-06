@@ -1,8 +1,8 @@
+import { ObjectOfPrimitives } from 'mielk-fn/lib/models/common.js';
 import { Connection, FieldPacket, Query, QueryResult, ResultSetHeader, createConnection } from 'mysql2/promise';
 import { ConnectionData } from './models/sql.js';
 import { DbField } from './models/fields.js';
 import { QueryResponse } from './models/responses.js';
-import { ObjectOfPrimitives } from './models/common.js';
 import { SqlProcessingError } from './errors/SqlProcessingError.js';
 import { DbConnectionError } from './errors/DbConnectionError.js';
 

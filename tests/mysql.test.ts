@@ -1,9 +1,8 @@
-import { FieldPacket, OkPacket, ResultSetHeader, RowDataPacket, createConnection } from 'mysql2/promise';
-import { ConnectionData, RequestType } from '../src/models/sql';
-import { ObjectOfPrimitives } from '../src/models/common';
+import { ObjectOfPrimitives } from 'mielk-fn/lib/models/common.js';
+import { FieldPacket, ResultSetHeader, RowDataPacket, createConnection } from 'mysql2/promise';
+import { ConnectionData } from '../src/models/sql';
 import { QueryResponse } from '../src/models/responses';
 import { query } from '../src/mysql';
-import utils from '../src/utils';
 import { DbConnectionError } from '../src/errors/DbConnectionError';
 import { SqlProcessingError } from '../src/errors/SqlProcessingError';
 

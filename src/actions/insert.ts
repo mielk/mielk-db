@@ -1,3 +1,4 @@
+import { ObjectOfAny, ObjectOfPrimitives } from 'mielk-fn/lib/models/common.js';
 import { DbStructure, IFieldsManager } from '../models/fields.js';
 import { ConnectionData, WhereOperator } from '../models/sql.js';
 import { MySqlResponse, QueryResponse } from '../models/responses.js';
@@ -12,7 +13,7 @@ export class Insert {
 	private _fieldsManager?: IFieldsManager;
 	//--------------------------------------
 	private _into: string = '';
-	private _object: { [key: string]: string | number | boolean | null } = {};
+	private _object: ObjectOfPrimitives = {};
 	//--------------------------------------
 
 	constructor(connectionData: ConnectionData, dbStructure?: DbStructure) {
@@ -20,7 +21,7 @@ export class Insert {
 		if (dbStructure) this._fieldsManager = FieldsManagerFactory.create(dbStructure);
 	}
 
-	___props(): { [key: string]: any } {
+	___props(): ObjectOfAny {
 		return {
 			into: this._into,
 			object: this._object,

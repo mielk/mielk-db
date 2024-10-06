@@ -1,10 +1,11 @@
+import { ObjectOfAny } from 'mielk-fn/lib/models/common.js';
 import { DbStructure, IFieldsManager } from '../models/fields.js';
 import { ConnectionData } from '../models/sql.js';
 import { MySqlResponse, QueryResponse } from '../models/responses.js';
 import { WhereCondition, WhereOperator } from '../models/sql.js';
 import { query } from '../mysql.js';
-import sqlBuilder from '../sqlBuilder.js';
 import { DbFieldsMap } from '../models/fields.js';
+import sqlBuilder from '../sqlBuilder.js';
 import FieldsManagerFactory from '../factories/FieldsManagerFactory.js';
 
 export class Delete {
@@ -21,7 +22,7 @@ export class Delete {
 	}
 
 	/* Only for testing purposes */
-	___props(): { [key: string]: any } {
+	___props(): ObjectOfAny {
 		return {
 			from: this._from,
 			where: this._where,

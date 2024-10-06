@@ -1,4 +1,4 @@
-import { ObjectOfPrimitives } from '../src/models/common';
+import { ObjectOfPrimitives } from 'mielk-fn/lib/models/common.js';
 import { DbFieldsMap } from '../src/models/fields';
 import { WhereOperator, WhereCondition } from '../src/models/sql';
 import builder from '../src/sqlBuilder';
