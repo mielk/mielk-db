@@ -2,10 +2,15 @@ import { FieldsManager } from '../src/fieldsManager';
 import { DbStructure } from '../src/models/fields';
 import { DbRecordSet, MultiRecordSet } from '../src/models/records';
 
+const languagesTable: string = 'languages';
+const languagesView: string = 'view___languages';
+const usersTable: string = 'users';
+const usersView: string = 'view___users';
+
 const dbStructure: DbStructure = {
 	languages: {
-		table: 'languages',
-		view: 'languages',
+		table: languagesTable,
+		view: languagesView,
 		key: 'id',
 		fieldsMap: {
 			id: 'language_id',
@@ -15,8 +20,8 @@ const dbStructure: DbStructure = {
 		},
 	},
 	users: {
-		table: 'users',
-		view: 'users',
+		table: usersTable,
+		view: usersView,
 		key: 'id',
 		fieldsMap: {
 			id: 'user_id',
@@ -37,7 +42,12 @@ describe('fieldsManager.constructor', () => {
 describe('getFieldsMap', () => {
 	test('should return proper map', () => {
 		const manager: FieldsManager = new FieldsManager(dbStructure);
-		expect(manager.getFieldsMap('languages')).toEqual(dbStructure.languages.fieldsMap);
+		expect(manager.getFieldsMap(languagesTable)).toEqual(dbStructure.languages.fieldsMap);
+	});
+
+	test('should return proper map if view name is used', () => {
+		const manager: FieldsManager = new FieldsManager(dbStructure);
+		expect(manager.getFieldsMap(languagesView)).toEqual(dbStructure.languages.fieldsMap);
 	});
 
 	test('should return null if map with the given id does not exist', () => {
@@ -49,7 +59,12 @@ describe('getFieldsMap', () => {
 describe('getFieldName', () => {
 	test('should return proper field name', () => {
 		const manager: FieldsManager = new FieldsManager(dbStructure);
-		expect(manager.getFieldName('languages', 'id')).toEqual('language_id');
+		expect(manager.getFieldName(languagesTable, 'id')).toEqual('language_id');
+	});
+
+	test('should return proper field name if view name is used', () => {
+		const manager: FieldsManager = new FieldsManager(dbStructure);
+		expect(manager.getFieldName(languagesView, 'id')).toEqual('language_id');
 	});
 
 	test('should return null if fieldsMap does not exist', () => {
@@ -96,7 +111,22 @@ describe('convertRecordset', () => {
 			{ id: 2, name: 'Bartek' },
 		];
 
-		const converted = fieldsManager.convertRecordset('users', records);
+		const converted = fieldsManager.convertRecordset(usersTable, records);
+		expect(converted).toEqual(expected);
+	});
+
+	test('should works properly if all fields are found and view name was used', () => {
+		const fieldsManager = new FieldsManager(dbStructure);
+		const records = [
+			{ user_id: 1, user_name: 'Adam' },
+			{ user_id: 2, user_name: 'Bartek' },
+		];
+		const expected = [
+			{ id: 1, name: 'Adam' },
+			{ id: 2, name: 'Bartek' },
+		];
+
+		const converted = fieldsManager.convertRecordset(usersView, records);
 		expect(converted).toEqual(expected);
 	});
 

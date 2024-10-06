@@ -4,16 +4,31 @@ import { DbTable } from './models/fields.js';
 import { DbRecord, DbRecordSet, MultiRecordSet } from './models/records.js';
 
 export class FieldsManager implements IFieldsManager {
-	private dbStructure: DbStructure;
+	private structure: DbStructure;
+	private viewsToFieldsMap: { [key: string]: DbTable };
 
-	constructor(dbStructure: DbStructure) {
-		this.dbStructure = dbStructure;
+	constructor(structure: DbStructure) {
+		this.structure = structure;
+		this.viewsToFieldsMap = this.createViewsToFieldsMap();
 	}
 
-	___getDbStructure = (): DbStructure => this.dbStructure;
+	private createViewsToFieldsMap = (): { [key: string]: DbTable } => {
+		const obj: { [key: string]: DbTable } = {};
+		if (this.structure) {
+			for (const dbTable of Object.values(this.structure)) {
+				obj[dbTable.table] = dbTable;
+				obj[dbTable.view] = dbTable;
+			}
+		}
+		return obj;
+	};
+
+	private getDbTable = (key: string): DbTable | null => this.viewsToFieldsMap[key] || null;
+
+	___getDbStructure = (): DbStructure => this.structure;
 
 	getFieldsMap = (name: string): DbFieldsMap | null => {
-		const table: DbTable = this.dbStructure[name];
+		const table: DbTable | null = this.getDbTable(name);
 		return table ? table.fieldsMap : null;
 	};
 
@@ -26,15 +41,14 @@ export class FieldsManager implements IFieldsManager {
 		const result: MultiRecordSet = {};
 		const entries = Object.entries(multiRs);
 		entries.forEach((entry: [string, any]) => {
-			const [tableName, records] = entry;
-			result[tableName] = this.convertRecordset(tableName, records);
+			const [name, records] = entry;
+			result[name] = this.convertRecordset(name, records);
 		});
 		return result;
 	};
 
 	convertRecordset = (name: string, recordset: DbRecordSet): DbRecordSet => {
-		const dbTable: DbTable | undefined = this.dbStructure[name];
-		const fieldsMap: DbFieldsMap = dbTable?.fieldsMap || {};
+		const fieldsMap: DbFieldsMap = this.getFieldsMap(name) || {};
 		const convertedFieldsMap: DbFieldsMap = objects.invert(fieldsMap);
 		return recordset.map((record) => this.convertRecord(record, convertedFieldsMap));
 	};
