@@ -1,8 +1,8 @@
 import { escape } from 'mysql2/promise';
 import { WhereCondition, OrderRule, WhereOperator } from './models/sql.js';
 import { strings, variables } from 'mielk-fn';
-import { ObjectOfPrimitives } from 'mielk-fn/lib/models/common.js';
 import { DbFieldsMap } from './models/fields.js';
+import { DbRecord } from './models/records.js';
 
 const defaultIsActiveField = 'is_active';
 
@@ -53,7 +53,7 @@ const getSelect = (
 	return strings.clear(`SELECT ${_select} FROM ${from} ${_where} ${_order}`);
 };
 
-const getInsert = (table: string, object: ObjectOfPrimitives, fieldsMap: DbFieldsMap) => {
+const getInsert = (table: string, object: DbRecord, fieldsMap: DbFieldsMap) => {
 	throwError.ifEmptyTableProcName(table, 'table');
 	throwError.ifNotNonEmptyObject(object, 'object');
 	_fieldsMap = fieldsMap;
@@ -64,7 +64,7 @@ const getInsert = (table: string, object: ObjectOfPrimitives, fieldsMap: DbField
 	return `INSERT INTO ${table} (${fields}) VALUES (${values})`;
 };
 
-function getUpdate(table: string, object: ObjectOfPrimitives, where: WhereCondition[], fieldsMap: DbFieldsMap): string {
+function getUpdate(table: string, object: DbRecord, where: WhereCondition[], fieldsMap: DbFieldsMap): string {
 	throwError.ifEmptyTableProcName(table, 'table');
 	throwError.ifNotNonEmptyObject(object, 'object');
 	throwError.ifNotNonEmptyArrayOfWhereConditions(where, 'where');

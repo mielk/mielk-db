@@ -17,12 +17,14 @@ const itemsFieldsMap: DbFieldsMap = { id: 'item_id', name: 'item_name' };
 const usersFieldsMap: DbFieldsMap = { id: 'user_id', name: 'user_name', isActive: 'is_active' };
 const dbStructure: DbStructure = {
 	items: {
-		tableName: 'items',
+		table: 'items',
+		view: 'items',
 		key: 'id',
 		fieldsMap: itemsFieldsMap,
 	},
 	users: {
-		tableName: 'users',
+		table: 'users',
+		view: 'users',
 		key: 'id',
 		fieldsMap: usersFieldsMap,
 	},

@@ -4,7 +4,8 @@ import { DbStructure, IFieldsManager } from '../../src/models/fields';
 
 const dbStructure: DbStructure = {
 	users: {
-		tableName: 'users',
+		table: 'users',
+		view: 'view___users',
 		key: 'id',
 		fieldsMap: {},
 	},

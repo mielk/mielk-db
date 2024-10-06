@@ -2,7 +2,7 @@ import { ObjectOfAny, ObjectOfPrimitives } from 'mielk-fn/lib/models/common.js';
 import { DbStructure, IFieldsManager } from '../models/fields.js';
 import { ConnectionData, WhereOperator } from '../models/sql.js';
 import { MySqlResponse, QueryResponse } from '../models/responses.js';
-import { DbRecordSet } from '../models/records.js';
+import { DbRecord, DbRecordSet } from '../models/records.js';
 import { query } from '../mysql.js';
 import { DbFieldsMap } from '../models/fields.js';
 import sqlBuilder from '../sqlBuilder.js';
@@ -13,7 +13,7 @@ export class Insert {
 	private _fieldsManager?: IFieldsManager;
 	//--------------------------------------
 	private _into: string = '';
-	private _object: ObjectOfPrimitives = {};
+	private _object: DbRecord = {};
 	//--------------------------------------
 
 	constructor(connectionData: ConnectionData, dbStructure?: DbStructure) {
@@ -35,7 +35,7 @@ export class Insert {
 		return this;
 	}
 
-	object(object: { [key: string]: string | number | boolean | null }): Insert {
+	object(object: DbRecord): Insert {
 		if (Object.keys(object).length === 0) throw new Error('Object cannot be empty');
 		this._object = object;
 		return this;

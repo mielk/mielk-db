@@ -13,9 +13,10 @@ const config: ConnectionData = {
 
 const itemsFieldsMap: DbFieldsMap = { id: 'item_id', name: 'item_name' };
 const usersFieldsMap: DbFieldsMap = { id: 'user_id', name: 'user_name', isActive: 'is_active' };
-const structureItem = (tableName: string, fieldsMap: DbFieldsMap) => {
+const structureItem = (table: string, fieldsMap: DbFieldsMap) => {
 	return {
-		tableName,
+		table,
+		view: table,
 		key: 'id',
 		fieldsMap,
 	};

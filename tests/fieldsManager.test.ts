@@ -4,7 +4,8 @@ import { DbRecordSet, MultiRecordSet } from '../src/models/records';
 
 const dbStructure: DbStructure = {
 	languages: {
-		tableName: 'languages',
+		table: 'languages',
+		view: 'languages',
 		key: 'id',
 		fieldsMap: {
 			id: 'language_id',
@@ -14,26 +15,14 @@ const dbStructure: DbStructure = {
 		},
 	},
 	users: {
-		tableName: 'users',
+		table: 'users',
+		view: 'users',
 		key: 'id',
 		fieldsMap: {
 			id: 'user_id',
 			name: 'user_name',
 			isActive: 'is_active',
 		},
-	},
-	userLanguages: {
-		tableName: 'user_languages',
-		key: 'id',
-		fieldsMap: {
-			id: 'user_language_id',
-			userId: 'user_id',
-			languageId: 'language_id',
-		},
-		foreignKeys: [
-			{ field: 'userId', table: 'users' },
-			{ field: 'languageId', table: 'languages' },
-		],
 	},
 };
 

@@ -3,7 +3,7 @@ import { DbStructure, IFieldsManager } from '../models/fields.js';
 import { ConnectionData } from '../models/sql.js';
 import { MySqlResponse, QueryResponse } from '../models/responses.js';
 import { WhereCondition, WhereOperator } from '../models/sql.js';
-import { DbRecordSet } from '../models/records.js';
+import { DbRecord, DbRecordSet } from '../models/records.js';
 import { query } from '../mysql.js';
 import sqlBuilder from '../sqlBuilder.js';
 import { DbFieldsMap } from '../models/fields.js';
@@ -15,7 +15,7 @@ export class Update {
 	//--------------------------------------
 	private _from: string = '';
 	private _where: WhereCondition[] = [];
-	private _object: { [key: string]: string | number | boolean | null } = {};
+	private _object: DbRecord = {};
 	//--------------------------------------
 
 	constructor(connectionData: ConnectionData, dbStructure?: DbStructure) {

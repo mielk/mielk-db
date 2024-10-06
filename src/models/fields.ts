@@ -3,7 +3,8 @@ import { DbRecordSet, MultiRecordSet } from './records.js';
 export type DbStructure = Record<string, DbTable>;
 
 export interface DbTable {
-	tableName: string;
+	table: string;
+	view: string;
 	key: string;
 	fieldsMap: DbFieldsMap;
 	foreignKeys?: DbForeignKey[];
