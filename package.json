@@ -22,19 +22,19 @@
   "homepage": "https://github.com/mielk/mielk-db#readme",
   "devDependencies": {
     "@babel/cli": "^7.25.7",
-    "@babel/core": "^7.25.7",
+    "@babel/core": "^7.25.8",
     "@babel/node": "^7.25.7",
-    "@babel/preset-env": "^7.25.7",
+    "@babel/preset-env": "^7.25.8",
     "@types/jest": "^29.5.13",
-    "@types/node": "^22.7.4",
+    "@types/node": "^22.7.5",
     "babel-jest": "^29.7.0",
     "jest": "^29.7.0",
     "jest-html-reporters": "^3.1.7",
     "ts-jest": "^29.2.5",
-    "typescript": "^5.6.2"
+    "typescript": "^5.6.3"
   },
   "dependencies": {
-    "mielk-fn": "^1.0.22",
+    "mielk-fn": "^1.0.25",
     "mysql2": "^3.11.3"
   },
   "files": [

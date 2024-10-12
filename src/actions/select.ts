@@ -1,12 +1,13 @@
+import sqlBuilder from '../sqlBuilder.js';
 import { ObjectOfAny } from 'mielk-fn/lib/models/common.js';
 import { ConnectionData, OrderRule } from '../models/sql.js';
-import { MySqlResponse, QueryResponse } from '../models/responses.js';
 import { WhereCondition, WhereOperator } from '../models/sql.js';
-import { query } from '../mysql.js';
+import { getDbRecordset } from '../mysql.js';
 import { TableFieldsMap } from '../models/fields.js';
-import sqlBuilder from '../sqlBuilder.js';
-import FieldsMapperFactory from '../factories/FieldsMapperFactory.js';
+import { MySqlSelectResponse } from '../models/responses.js';
+import { Validation } from '../models/generic.js';
 import { DbRecordSet } from '../models/records.js';
+import FieldsMapperFactory from '../factories/FieldsMapperFactory.js';
 
 export class Select {
 	private _connectionData: ConnectionData;
@@ -75,32 +76,32 @@ export class Select {
 		return this;
 	}
 
-	execute = async (fieldsMap?: TableFieldsMap): Promise<MySqlResponse> => {
-		this.validate();
+	execute = async (fieldsMap?: TableFieldsMap): Promise<MySqlSelectResponse> => {
+		const ERR_INVALID_RESPONSE: string = 'Invalid response from mysql2/promise';
+		const validation: Validation = this.validate();
 
-		const sql: string = sqlBuilder.getSelect(this._fields, this._from, this._where, this._order, fieldsMap || {});
-
-		try {
-			const result: QueryResponse = await query(this._connectionData, sql);
-			const items: DbRecordSet = fieldsMap
-				? FieldsMapperFactory.create().convertRecordset(result.items, fieldsMap)
-				: result.items;
-
-			return {
-				status: true,
-				rows: result.rows,
-				items,
-			};
-		} catch (err) {
-			const message: string = err instanceof Error ? err.message : 'An unknown error occurred';
-			return {
-				status: false,
-				message,
-			};
+		if (!validation.status) {
+			return new Promise<MySqlSelectResponse>((res, rej) => rej(new Error(validation.message)));
+		} else {
+			const sql: string = sqlBuilder.getSelect(this._fields, this._from, this._where, this._order, fieldsMap || {});
+			return new Promise<MySqlSelectResponse>(async (resolve, reject) => {
+				try {
+					const rs: DbRecordSet = await getDbRecordset(sql, this._connectionData);
+					const items: DbRecordSet = fieldsMap ? FieldsMapperFactory.create().convertRecordset(rs, fieldsMap) : rs;
+					resolve({ items });
+				} catch (err: unknown) {
+					reject(err);
+				}
+			});
 		}
 	};
 
-	private validate = (): void => {
-		if (!this._from) throw new Error('SELECT cannot be executed if [tableName] has not been set');
+	private validate = (): Validation => {
+		const errors: string[] = [];
+		if (!this._from) errors.push('SELECT cannot be executed if [tableName] has not been set');
+		return {
+			status: errors.length === 0,
+			message: errors.join(),
+		};
 	};
 }

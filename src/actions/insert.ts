@@ -1,11 +1,14 @@
 import { ObjectOfAny } from 'mielk-fn/lib/models/common.js';
-import { ConnectionData, WhereOperator } from '../models/sql.js';
-import { MySqlResponse, QueryResponse } from '../models/responses.js';
-import { DbRecord, DbRecordSet } from '../models/records.js';
-import { query } from '../mysql.js';
+import { ConnectionData } from '../models/sql.js';
+import { DbRecord } from '../models/records.js';
+import { getConnection, getResultSetHeader, isResultSetHeader, query } from '../mysql.js';
 import { TableFieldsMap } from '../models/fields.js';
 import sqlBuilder from '../sqlBuilder.js';
-import FieldsMapperFactory from '../factories/FieldsMapperFactory.js';
+import { Validation } from '../models/generic.js';
+import { MySqlInsertResponse } from '../models/responses.js';
+import { Connection, ResultSetHeader } from 'mysql2/promise';
+import { SqlProcessingError } from '../errors/SqlProcessingError.js';
+import { objects } from 'mielk-fn';
 
 export class Insert {
 	private _connectionData: ConnectionData;
@@ -37,44 +40,33 @@ export class Insert {
 		return this;
 	}
 
-	execute = async (fieldsMap?: TableFieldsMap): Promise<MySqlResponse> => {
-		this.validate();
-
-		const sqlInsert: string = sqlBuilder.getInsert(this._into, this._object, fieldsMap || {});
-
-		try {
-			const result: QueryResponse = await query(this._connectionData, sqlInsert);
-			const insertId: number = result.insertId || -1;
-			const sqlSelect: string = sqlBuilder.getSelect(
-				undefined,
-				this._into,
-				[{ field: 'id', operator: WhereOperator.Equal, value: insertId }],
-				undefined,
-				fieldsMap || {}
-			);
-
-			const postCheck: QueryResponse = await query(this._connectionData, sqlSelect);
-
-			const items: DbRecordSet = fieldsMap
-				? FieldsMapperFactory.create().convertRecordset(postCheck.items, fieldsMap)
-				: postCheck.items;
-
-			return {
-				status: true,
-				items,
-			};
-		} catch (err) {
-			const message: string = err instanceof Error ? err.message : 'An unknown error occurred';
-			return {
-				status: false,
-				message,
-			};
+	execute = async (fieldsMap?: TableFieldsMap): Promise<MySqlInsertResponse> => {
+		const ERR_INVALID_RESPONSE: string = 'Invalid response from mysql2/promise';
+		const validation: Validation = this.validate();
+		if (!validation.status) {
+			return new Promise<MySqlInsertResponse>((res, rej) => rej(new Error(validation.message)));
+		} else {
+			const sql: string = sqlBuilder.getInsert(this._into, this._object, fieldsMap || {});
+			return new Promise<MySqlInsertResponse>(async (resolve, reject) => {
+				try {
+					const response: ResultSetHeader = await getResultSetHeader(sql, this._connectionData);
+					const { insertId, affectedRows } = response;
+					//Info: "Records: 1  Duplicates: 0  Warnings: 0"
+					resolve({ insertId, affectedRows });
+				} catch (err: unknown) {
+					reject(err);
+				}
+			});
 		}
 	};
 
-	private validate = (): void => {
-		if (!this._into) throw new Error('INSERT cannot be executed if [tableName] has not been set');
-		if (Object.keys(this._object || {}).length === 0)
-			throw new Error('INSERT cannot be executed if [object] has not been set');
+	private validate = (): Validation => {
+		const errors: string[] = [];
+		if (!this._into) errors.push('INSERT cannot be executed if [tableName] has not been set');
+		if (!objects.isNonEmptyObject(this._object)) errors.push('INSERT cannot be executed if [object] has not been set');
+		return {
+			status: errors.length === 0,
+			message: errors.join(),
+		};
 	};
 }

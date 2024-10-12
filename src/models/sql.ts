@@ -19,20 +19,20 @@ export enum WhereOperator {
 	NotLike = 'NOT LIKE',
 }
 
-export interface ConnectionData {
+export type ConnectionData = {
 	host: string;
 	user: string;
 	password: string;
 	database: string;
-}
+};
 
-export interface WhereCondition {
+export type WhereCondition = {
 	field: string;
 	operator: WhereOperator;
 	value: string | number | boolean | null | (string | number | boolean | null)[];
-}
+};
 
-export interface OrderRule {
+export type OrderRule = {
 	field: string;
 	ascending: boolean;
-}
+};

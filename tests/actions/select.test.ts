@@ -1,9 +1,11 @@
 import { ConnectionData, WhereCondition, WhereOperator, RequestType, OrderRule } from '../../src/models/sql';
-import { TableFieldsMap, DbStructure } from '../../src/models/fields';
+import { TableFieldsMap } from '../../src/models/fields';
 import { Select } from '../../src/actions/select';
-import { query } from '../../src/mysql';
 import { getSelect } from '../../src/sqlBuilder';
-import { MySqlResponse } from '../../src/models/responses';
+import { SqlProcessingError } from '../../src/errors/SqlProcessingError';
+import { DbConnectionError } from '../../src/errors/DbConnectionError';
+import { createConnection } from 'mysql2/promise';
+import { MySqlSelectResponse } from '../../src/models/responses';
 
 const config: ConnectionData = {
 	host: 'host',
@@ -39,11 +41,15 @@ const mockFieldsMapper = {
 jest.mock('../../src/factories/FieldsMapperFactory', () => ({
 	create: jest.fn(() => mockFieldsMapper),
 }));
-jest.mock('../../src/sqlBuilder', () => ({ getSelect: jest.fn() }));
-jest.mock('../../src/mysql', () => ({ query: jest.fn(() => ({ status: true, rows: 2, items: originalRecordset })) }));
 
+jest.mock('../../src/sqlBuilder', () => ({ getSelect: jest.fn() }));
+jest.mock('mysql2/promise', () => ({ createConnection: jest.fn() }));
+const mockQuery: jest.MockedFunction<any> = jest.fn().mockResolvedValue([[{ id: 1 }], [{ id: 2 }]]);
+const mockCreateConnection: jest.MockedFunction<any> = (createConnection as jest.MockedFunction<any>).mockResolvedValue({
+	query: mockQuery,
+});
 const mockGetSelect: jest.MockedFunction<any> = getSelect as jest.MockedFunction<any>;
-const mockMySqlQuery: jest.MockedFunction<any> = query as jest.MockedFunction<any>;
+mockGetSelect.mockReturnValue(sql);
 
 describe('constructor', () => {
 	test('should create a new instance of Select class', () => {
@@ -229,7 +235,6 @@ describe('execute', () => {
 			{ field: 'age', operator: WhereOperator.Equal, value: null },
 		];
 		const order: OrderRule[] = [{ field: 'name', ascending: true }];
-
 		const select: Select = new Select(config).from(usersTable).conditions(wheres).order(order);
 		const props = select.___props();
 
@@ -246,7 +251,6 @@ describe('execute', () => {
 			{ field: 'age', operator: WhereOperator.Equal, value: null },
 		];
 		const order: OrderRule[] = [{ field: 'name', ascending: true }];
-
 		const select: Select = new Select(config).from(tableName).conditions(wheres).order(order);
 		const props = select.___props();
 
@@ -256,20 +260,67 @@ describe('execute', () => {
 		});
 	});
 
-	test('mysql should be called once and with correct parameters', async () => {
-		const tableName: string = 'users';
-		const select: Select = new Select(config).from(tableName);
+	test('should throw an error if connection to the database failed', async () => {
+		const message: string = 'err!!';
+		const expectedMessage: string = `Error while trying to establish connection | ${message}`;
+		const where1: WhereCondition = { field: 'name', operator: WhereOperator.Equal, value: null };
 
-		mockGetSelect.mockReturnValue(sql);
-		await select.execute().then(() => {
-			expect(mockMySqlQuery).toHaveBeenCalledTimes(1);
-			expect(mockMySqlQuery).toHaveBeenCalledWith(config, sql);
-		});
+		mockCreateConnection.mockRejectedValueOnce(new Error(message));
+
+		expect.assertions(2);
+
+		await new Select(config)
+			.from('users')
+			.conditions(where1)
+			.execute()
+			.catch((err: unknown) => {
+				expect((err as Error).message).toEqual(expectedMessage);
+				expect(err instanceof DbConnectionError).toBeTruthy();
+			});
+	});
+
+	test('should throw an error if there is an error in SQL execution', async () => {
+		const message: string = 'err';
+		const expectedMessage: string = `Error while executing SQL | ${message}`;
+		const where1: WhereCondition = { field: 'name', operator: WhereOperator.Equal, value: null };
+
+		mockQuery.mockRejectedValueOnce(new Error(message));
+
+		expect.assertions(2);
+
+		await new Select(config)
+			.from('users')
+			.conditions(where1)
+			.execute()
+			.catch((err: unknown) => {
+				expect((err as Error).message).toEqual(expectedMessage);
+				expect(err instanceof SqlProcessingError).toBeTruthy();
+			});
+	});
+
+	test('should throw an error if there is an unexecpted response from mysql2/promise', async () => {
+		const expectedMessage: string = `Invalid response from mysql2/promise`;
+		const where1: WhereCondition = { field: 'name', operator: WhereOperator.Equal, value: null };
+
+		mockQuery.mockResolvedValue([2, 3, [{ value: 123 }], []]);
+
+		expect.assertions(2);
+
+		await new Select(config)
+			.from('users')
+			.conditions(where1)
+			.execute()
+			.catch((err: unknown) => {
+				expect((err as Error).message).toEqual(expectedMessage);
+				expect(err instanceof SqlProcessingError).toBeTruthy();
+			});
 	});
 
 	test('if fieldsMap is specified, FieldsMapper should be invoked on the query result', async () => {
 		const tableName: string = 'users';
 		const select: Select = new Select(config).from(tableName);
+
+		mockQuery.mockResolvedValueOnce([originalRecordset, []]);
 
 		await select.execute(usersFieldsMap).then(() => {
 			expect(mockFieldsMapper.convertRecordset).toHaveBeenCalledTimes(1);
@@ -281,6 +332,8 @@ describe('execute', () => {
 		const tableName: string = 'users';
 		const select: Select = new Select(config).from(tableName);
 
+		mockQuery.mockResolvedValueOnce([originalRecordset, []]);
+
 		await select.execute().then(() => {
 			expect(mockFieldsMapper.convertRecordset).toHaveBeenCalledTimes(0);
 		});
@@ -290,9 +343,9 @@ describe('execute', () => {
 		const tableName: string = 'users';
 		const select: Select = new Select(config).from(tableName);
 
-		await select.execute(usersFieldsMap).then((response: MySqlResponse) => {
-			expect(response.status).toBeTruthy();
-			expect(response.rows).toEqual(2);
+		mockQuery.mockResolvedValueOnce([originalRecordset, [{ id: 1 }]]);
+
+		await select.execute(usersFieldsMap).then((response: MySqlSelectResponse) => {
 			expect(response.items).toEqual(convertedRecordset);
 		});
 	});
@@ -301,27 +354,10 @@ describe('execute', () => {
 		const tableName: string = 'users';
 		const select: Select = new Select(config).from(tableName);
 
-		await select.execute().then((response: MySqlResponse) => {
-			expect(response.status).toBeTruthy();
-			expect(response.rows).toEqual(2);
+		mockQuery.mockResolvedValueOnce([originalRecordset, [{ id: 1 }]]);
+
+		await select.execute().then((response: MySqlSelectResponse) => {
 			expect(response.items).toEqual(originalRecordset);
-			expect(response.message).toBeUndefined();
-		});
-	});
-
-	test('should return falsy status and error message result if error was thrown by mysql', async () => {
-		const errorMessage: string = 'Error message';
-		const select: Select = new Select(config).from('table');
-
-		mockMySqlQuery.mockImplementation(() => {
-			throw new Error(errorMessage);
-		});
-
-		await select.execute().then((result) => {
-			expect(result.status).toBeFalsy();
-			expect(result.rows).toBeUndefined();
-			expect(result.items).toBeUndefined();
-			expect(result.message).toEqual(errorMessage);
 		});
 	});
 });

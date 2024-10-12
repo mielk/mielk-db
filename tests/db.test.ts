@@ -4,6 +4,7 @@ import { Update } from '../src/actions/update';
 import { Select } from '../src/actions/select';
 import { Delete } from '../src/actions/delete';
 import { Insert } from '../src/actions/insert';
+import { Proc } from '../src/actions/proc';
 
 const config: ConnectionData = {
 	host: 'host',
@@ -37,5 +38,12 @@ describe('insert', () => {
 	test('should create new instance of Insert class', () => {
 		const insert: Insert = new Db(config).insert();
 		expect(insert).toBeInstanceOf(Insert);
+	});
+});
+
+describe('proc', () => {
+	test('should create new instance of Proc class', () => {
+		const proc: Proc = new Db(config).proc();
+		expect(proc).toBeInstanceOf(Proc);
 	});
 });

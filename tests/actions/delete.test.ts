@@ -1,8 +1,11 @@
 import { ConnectionData, WhereCondition, WhereOperator } from '../../src/models/sql';
 import { TableFieldsMap } from '../../src/models/fields';
 import { Delete } from '../../src/actions/delete';
-import { query } from '../../src/mysql';
 import { getDelete } from '../../src/sqlBuilder';
+import { createConnection, ResultSetHeader } from 'mysql2/promise';
+import { DbConnectionError } from '../../src/errors/DbConnectionError';
+import { SqlProcessingError } from '../../src/errors/SqlProcessingError';
+import { MySqlDeleteResponse } from '../../src/models/responses';
 
 const config: ConnectionData = {
 	host: 'host',
@@ -19,19 +22,30 @@ const usersFieldsMap: TableFieldsMap = {
 
 const sql: string = 'DELETE';
 
+const createResultSetHeader = (affectedRows: number): ResultSetHeader => {
+	return {
+		constructor: {
+			name: 'ResultSetHeader',
+		},
+		fieldCount: 0,
+		affectedRows,
+		insertId: 0,
+		info: '',
+		serverStatus: 2,
+		warningStatus: 0,
+		changedRows: 0,
+	};
+};
+
 /* MOCKS */
-jest.mock('../../src/sqlBuilder', () => ({
-	getDelete: jest.fn(),
-}));
-jest.mock('../../src/mysql', () => ({
-	query: jest.fn(),
-}));
-
+jest.mock('../../src/sqlBuilder', () => ({ getDelete: jest.fn() }));
+jest.mock('mysql2/promise', () => ({ createConnection: jest.fn() }));
+const mockQuery: jest.MockedFunction<any> = jest.fn();
+const mockCreateConnection: jest.MockedFunction<any> = (createConnection as jest.MockedFunction<any>).mockResolvedValue({
+	query: mockQuery,
+});
 const mockGetDelete: jest.MockedFunction<any> = getDelete as jest.MockedFunction<any>;
-const mockMySqlQuery: jest.MockedFunction<any> = query as jest.MockedFunction<any>;
-
 mockGetDelete.mockReturnValue(sql);
-mockMySqlQuery.mockResolvedValue({ status: true });
 
 describe('constructor', () => {
 	test('should create new instance of Delete class', () => {
@@ -122,6 +136,8 @@ describe('execute', () => {
 		const where1: WhereCondition = { field: 'name', operator: WhereOperator.Equal, value: null };
 		const del: Delete = new Delete(config).from(tableName).conditions(where1);
 
+		mockQuery.mockResolvedValueOnce([createResultSetHeader(1), []]);
+
 		await del.execute().then(() => {
 			expect(getDelete).toHaveBeenCalledTimes(1);
 			expect(getDelete).toHaveBeenCalledWith(tableName, [where1], {});
@@ -133,36 +149,79 @@ describe('execute', () => {
 		const where1: WhereCondition = { field: 'name', operator: WhereOperator.Equal, value: null };
 		const del: Delete = new Delete(config).from(tableName).conditions(where1);
 
+		mockQuery.mockResolvedValueOnce([createResultSetHeader(1), []]);
+
 		await del.execute(usersFieldsMap).then(() => {
 			expect(mockGetDelete).toHaveBeenCalledTimes(1);
 			expect(mockGetDelete).toHaveBeenCalledWith(tableName, [where1], usersFieldsMap);
 		});
 	});
 
-	test('mysql should be called once and with correct parameters', async () => {
-		const tableName: string = 'users';
-		const del: Delete = new Delete(config).from(tableName).where('name', WhereOperator.Equal, null);
+	test('should throw an error if connection to the database failed', async () => {
+		const message: string = 'err!!';
+		const expectedMessage: string = `Error while trying to establish connection | ${message}`;
+		const where1: WhereCondition = { field: 'name', operator: WhereOperator.Equal, value: null };
 
-		await del.execute().then(() => {
-			expect(mockMySqlQuery).toHaveBeenCalledTimes(1);
-			expect(mockMySqlQuery).toHaveBeenCalledWith(config, sql);
-		});
+		mockCreateConnection.mockRejectedValueOnce(new Error(message));
+
+		expect.assertions(2);
+
+		await new Delete(config)
+			.from('users')
+			.conditions(where1)
+			.execute()
+			.catch((err: unknown) => {
+				expect((err as Error).message).toEqual(expectedMessage);
+				expect(err instanceof DbConnectionError).toBeTruthy();
+			});
 	});
 
-	test('should return falsy status and error message result if error was thrown by mysql', async () => {
-		const tableName: string = 'table';
-		const errorMessage: string = 'Error message';
-		const del: Delete = new Delete(config).from(tableName).where('name', WhereOperator.Equal, null);
+	test('should throw an error if there is an error in SQL execution', async () => {
+		const message: string = 'err';
+		const expectedMessage: string = `Error while executing SQL | ${message}`;
+		const where1: WhereCondition = { field: 'name', operator: WhereOperator.Equal, value: null };
 
-		mockMySqlQuery.mockImplementationOnce(() => {
-			throw new Error(errorMessage);
-		});
+		mockQuery.mockRejectedValueOnce(new Error(message));
 
-		await del.execute(usersFieldsMap).then((result) => {
-			expect(result.status).toBeFalsy();
-			expect(result.rows).toBeUndefined();
-			expect(result.items).toBeUndefined();
-			expect(result.message).toEqual(errorMessage);
+		expect.assertions(2);
+
+		await new Delete(config)
+			.from('users')
+			.conditions(where1)
+			.execute()
+			.catch((err: unknown) => {
+				expect((err as Error).message).toEqual(expectedMessage);
+				expect(err instanceof SqlProcessingError).toBeTruthy();
+			});
+	});
+
+	test('should throw an error if there is an unexecpted response from mysql2/promise', async () => {
+		const expectedMessage: string = `Invalid response from mysql2/promise`;
+		const where1: WhereCondition = { field: 'name', operator: WhereOperator.Equal, value: null };
+
+		mockQuery.mockResolvedValue([[{ value: 123 }], []]);
+
+		expect.assertions(2);
+
+		await new Delete(config)
+			.from('users')
+			.conditions(where1)
+			.execute()
+			.catch((err: unknown) => {
+				expect((err as Error).message).toEqual(expectedMessage);
+				expect(err instanceof SqlProcessingError).toBeTruthy();
+			});
+	});
+
+	test('should return correct value', async () => {
+		const affectedRows: number = 2;
+		const del: Delete = new Delete(config).from('users').where('name', WhereOperator.Equal, null);
+		const expectedResponse: MySqlDeleteResponse = { affectedRows: 1 };
+
+		mockQuery.mockResolvedValue([createResultSetHeader(affectedRows), []]);
+
+		await del.execute().then((response: MySqlDeleteResponse) => {
+			expect(response.affectedRows).toBe(2);
 		});
 	});
 });

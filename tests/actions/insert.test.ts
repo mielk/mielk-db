@@ -2,14 +2,36 @@ import { ConnectionData } from '../../src/models/sql';
 import { DbRecord } from '../../src/models/records';
 import { TableFieldsMap, DbStructure } from '../../src/models/fields';
 import { Insert } from '../../src/actions/insert';
-import { query } from '../../src/mysql';
 import { getInsert, getSelect } from '../../src/sqlBuilder';
+import { SqlProcessingError } from '../../src/errors/SqlProcessingError';
+import { DbConnectionError } from '../../src/errors/DbConnectionError';
+import { createConnection, ResultSetHeader } from 'mysql2/promise';
+import { MySqlInsertResponse } from '../../src/models/responses';
 
 const config: ConnectionData = {
 	host: 'host',
 	database: 'database',
 	user: 'user',
 	password: 'password',
+};
+
+const sqlInsert: string = 'INSERT';
+const sqlSelect: string = 'SELECT';
+const object: DbRecord = { name: 'name', value: 5 };
+
+const createResultSetHeader = (insertId: number, affectedRows: number = 1): ResultSetHeader => {
+	return {
+		constructor: {
+			name: 'ResultSetHeader',
+		},
+		fieldCount: 0,
+		affectedRows,
+		insertId,
+		info: '',
+		serverStatus: 2,
+		warningStatus: 0,
+		changedRows: 0,
+	};
 };
 
 const usersTable: string = 'users';
@@ -28,20 +50,15 @@ const dbStructure: DbStructure = {
 	users: structureItem('users', usersFieldsMap),
 };
 
-const sqlInsert: string = 'INSERT';
-const sqlSelect: string = 'SELECT';
-const object: DbRecord = { name: 'name', value: 5 };
+const convertedRecordset = [
+	{ id: 1, name: 'Adam' },
+	{ id: 2, name: 'Bartek' },
+];
 
 /* MOCKS */
 
 const mockFieldsMapper = {
-	// ___getDbStructure: jest.fn().mockReturnValue(dbStructure),
-	// getFieldsMap: jest.fn().mockReturnValue(usersFieldsMap),
-	// getFieldName: jest.fn((name: string, property: string) => {
-	// 	const map: Record<string, string> = { user_id: 'id', user_name: 'name' };
-	// 	return map[property] || 'field';
-	// }),
-	convertRecordset: jest.fn(), //() => convertedRecordset),
+	convertRecordset: jest.fn(() => convertedRecordset),
 };
 jest.mock('../../src/factories/FieldsMapperFactory', () => ({
 	create: jest.fn(() => mockFieldsMapper),
@@ -50,17 +67,19 @@ jest.mock('../../src/sqlBuilder', () => ({
 	getSelect: jest.fn(),
 	getInsert: jest.fn(),
 }));
-jest.mock('../../src/mysql', () => ({
-	query: jest.fn(),
-}));
-
+// jest.mock('../../src/mysql', () => ({
+// 	query: jest.fn(),
+// }));
+jest.mock('mysql2/promise', () => ({ createConnection: jest.fn() }));
+const mockQuery: jest.MockedFunction<any> = jest.fn().mockResolvedValue([[{ id: 1 }], [{ id: 2 }]]);
+const mockCreateConnection: jest.MockedFunction<any> = (createConnection as jest.MockedFunction<any>).mockResolvedValue({
+	query: mockQuery,
+});
 const mockGetInsert: jest.MockedFunction<any> = getInsert as jest.MockedFunction<any>;
 const mockGetSelect: jest.MockedFunction<any> = getSelect as jest.MockedFunction<any>;
-const mockMySqlQuery: jest.MockedFunction<any> = query as jest.MockedFunction<any>;
-
 mockGetSelect.mockReturnValue(sqlSelect);
 mockGetInsert.mockReturnValue(sqlInsert);
-mockMySqlQuery.mockResolvedValue({ rows: 1, items: [object], insertId: 100 });
+// mockMySqlQuery.mockResolvedValue({ rows: 1, items: [object], insertId: 100 });
 
 describe('constructor', () => {
 	test('should create new instance of Insert class', () => {
@@ -109,15 +128,20 @@ describe('execute', () => {
 
 	test('should throw an error if invoked without object', async () => {
 		const tableName: string = 'users';
-		await expect(new Insert(config).into(tableName).execute()).rejects.toThrow(
-			'INSERT cannot be executed if [object] has not been set'
-		);
+		new Insert(config)
+			.into(tableName)
+			.execute()
+			.catch((err) => {
+				expect(err.message).toBe('INSERT cannot be executed if [object] has not been set');
+			});
 	});
 
 	test('sqlBuilder should be called once and with correct parameters if fieldsMap is not specified', async () => {
 		const tableName: string = 'users';
 		const insert: Insert = new Insert(config).into(tableName).object(object);
 		const props = insert.___props();
+
+		mockQuery.mockResolvedValueOnce([createResultSetHeader(1), []]);
 
 		await insert.execute().then(() => {
 			expect(getInsert).toHaveBeenCalledTimes(1);
@@ -130,113 +154,81 @@ describe('execute', () => {
 		const insert: Insert = new Insert(config).into(tableName).object(object);
 		const props: Record<string, any> = insert.___props();
 
+		mockQuery.mockResolvedValueOnce([createResultSetHeader(1), []]);
+
 		await insert.execute(usersFieldsMap).then(() => {
 			expect(getInsert).toHaveBeenCalledTimes(1);
 			expect(getInsert).toHaveBeenCalledWith(tableName, props.object, usersFieldsMap);
 		});
 	});
 
-	test('mysql should be called twice if INSERT was successful', async () => {
-		const insert: Insert = new Insert(config).into('users').object({ name: '' });
-		await insert.execute().then(() => {
-			expect(query).toHaveBeenCalledTimes(2);
-			expect(query).toHaveBeenCalledWith(config, sqlInsert);
-			expect(query).toHaveBeenCalledWith(config, sqlSelect);
-		});
+	test('should throw an error if connection to the database failed', async () => {
+		const message: string = 'err';
+		const expectedMessage: string = `Error while trying to establish connection | ${message}`;
+		const object = { id: 1, name: 'abc' };
+
+		mockCreateConnection.mockRejectedValueOnce(new Error(message));
+
+		expect.assertions(2);
+
+		await new Insert(config)
+			.into('users')
+			.object(object)
+			.execute()
+			.catch((err: unknown) => {
+				expect((err as Error).message).toEqual(expectedMessage);
+				expect(err instanceof DbConnectionError).toBeTruthy();
+			});
 	});
 
-	test('if fieldsMap is specified, FieldsMapper should be invoked on the query result', async () => {
-		const tableName: string = 'users';
-		const response: DbRecord = { user_id: 100, user_name: 'John' };
-		const insert: Insert = new Insert(config).into(tableName).object({ name: 'user' });
+	test('should throw an error if there is an error in SQL execution', async () => {
+		const message: string = 'err';
+		const expectedMessage: string = `Error while executing SQL | ${message}`;
+		const object = { id: 1, name: 'abc' };
 
-		mockMySqlQuery.mockResolvedValueOnce({ insertId: 1 });
-		mockMySqlQuery.mockResolvedValueOnce({ items: [response] });
+		mockQuery.mockRejectedValueOnce(new Error(message));
 
-		await insert.execute(usersFieldsMap).then(() => {
-			expect(mockFieldsMapper.convertRecordset).toHaveBeenCalledTimes(1);
-			expect(mockFieldsMapper.convertRecordset).toHaveBeenCalledWith([response], usersFieldsMap);
-		});
+		expect.assertions(2);
+
+		await new Insert(config)
+			.into('users')
+			.object(object)
+			.execute()
+			.catch((err: unknown) => {
+				expect((err as Error).message).toEqual(expectedMessage);
+				expect(err instanceof SqlProcessingError).toBeTruthy();
+			});
 	});
 
-	test('if fieldsMap is not specified, FieldsMapper should not be invoked on the query result', async () => {
-		const tableName: string = 'users';
-		const response: DbRecord = { user_id: 100, user_name: 'John' };
-		const insert: Insert = new Insert(config).into(tableName).object({ name: 'user' });
+	test('should throw an error if there is an unexecpted response from mysql2/promise', async () => {
+		const expectedMessage: string = `Invalid response from mysql2/promise`;
+		const object = { id: 1, name: 'abc' };
 
-		mockMySqlQuery.mockResolvedValueOnce({ insertId: 1 });
-		mockMySqlQuery.mockResolvedValueOnce({ items: [response] });
+		mockQuery.mockResolvedValue([2, 3, [{ value: 123 }], []]);
 
-		await insert.execute().then(() => {
-			expect(mockFieldsMapper.convertRecordset).toHaveBeenCalledTimes(0);
-		});
+		expect.assertions(2);
+
+		await new Insert(config)
+			.into('users')
+			.object(object)
+			.execute()
+			.catch((err: unknown) => {
+				expect((err as Error).message).toEqual(expectedMessage);
+				expect(err instanceof SqlProcessingError).toBeTruthy();
+			});
 	});
 
-	test('should return correct result if fieldsMap is specified', async () => {
-		const insert: Insert = new Insert(config).into(usersTable).object(object);
-		const returned: [DbRecord] = [{ id: 1, name: 'A' }];
+	test('should return correct value if successful', async () => {
+		const insertId: number = 2;
+		const affectedRows: number = 1;
+		const object = { id: 1, name: 'abc' };
+		const insert: Insert = new Insert(config).into('users').object(object);
 
-		mockFieldsMapper.convertRecordset.mockReturnValueOnce(returned);
+		mockQuery.mockResolvedValue([createResultSetHeader(insertId, affectedRows), []]);
 
-		await insert.execute(usersFieldsMap).then((result) => {
-			expect(result.status).toBeTruthy();
-			expect(result.items).toEqual(returned);
-		});
-	});
-
-	test('should return correct result if fieldsMap is not specified', async () => {
-		const insert: Insert = new Insert(config).into(usersTable).object(object);
-
-		await insert.execute().then((result) => {
-			expect(result.status).toBeTruthy();
-			expect(result.items).toEqual([object]);
-		});
-	});
-
-	test('should return falsy status and error message result if INSERT was unsuccessful', async () => {
-		const errorMessage: string = 'Error message';
-		const insert: Insert = new Insert(config).into(usersTable).object(object);
-
-		mockMySqlQuery.mockImplementationOnce(() => {
-			throw new Error(errorMessage);
-		});
-
-		await insert.execute().then((result) => {
-			expect(result.status).toBeFalsy();
-			expect(result.rows).toBeUndefined();
-			expect(result.items).toBeUndefined();
-			expect(result.message).toEqual(errorMessage);
-		});
-	});
-
-	test('mysql should be called once if INSERT was unsuccessful', async () => {
-		const errorMessage: string = 'Error message';
-		const insert: Insert = new Insert(config).into(usersTable).object(object);
-
-		mockMySqlQuery.mockImplementationOnce(() => {
-			throw new Error(errorMessage);
-		});
-
-		await insert.execute().then(() => {
-			expect(query).toHaveBeenCalledTimes(1);
-			expect(query).toHaveBeenCalledWith(config, sqlInsert);
-		});
-	});
-
-	test('should return falsy status and error message result if post-insert SELECT was unsuccessful', async () => {
-		const errorMessage: string = 'Error message';
-		const insert: Insert = new Insert(config).into(usersTable).object(object);
-
-		mockMySqlQuery.mockImplementationOnce(() => ({ rows: 1, items: [object], insertId: 100 }));
-		mockMySqlQuery.mockImplementationOnce(() => {
-			throw new Error(errorMessage);
-		});
-
-		await insert.execute().then((result) => {
-			expect(result.status).toBeFalsy();
-			expect(result.rows).toBeUndefined();
-			expect(result.items).toBeUndefined();
-			expect(result.message).toEqual(errorMessage);
+		await insert.execute().then((response: MySqlInsertResponse) => {
+			expect(response.insertId).toBe(insertId);
+			expect(response.affectedRows).toBe(affectedRows);
 		});
 	});
 });

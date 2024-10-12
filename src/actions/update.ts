@@ -1,12 +1,15 @@
 import { ObjectOfAny } from 'mielk-fn/lib/models/common.js';
 import { ConnectionData } from '../models/sql.js';
-import { MySqlResponse, QueryResponse } from '../models/responses.js';
 import { WhereCondition, WhereOperator } from '../models/sql.js';
 import { DbRecord, DbRecordSet } from '../models/records.js';
-import { query } from '../mysql.js';
+import { getChangedRowsFromInfo, getConnection, getResultSetHeader, isResultSetHeader, query } from '../mysql.js';
 import sqlBuilder from '../sqlBuilder.js';
 import { TableFieldsMap } from '../models/fields.js';
 import FieldsMapperFactory from '../factories/FieldsMapperFactory.js';
+import { Validation } from '../models/generic.js';
+import { MySqlUpdateResponse } from '../models/responses.js';
+import { SqlProcessingError } from '../errors/SqlProcessingError.js';
+import { Connection, ResultSetHeader } from 'mysql2/promise';
 
 export class Update {
 	private _connectionData: ConnectionData;
@@ -57,36 +60,35 @@ export class Update {
 		return this;
 	}
 
-	execute = async (fieldsMap?: TableFieldsMap): Promise<MySqlResponse> => {
-		this.validate();
-
-		const sql: string = sqlBuilder.getUpdate(this._from, this._object, this._where, fieldsMap || {});
-
-		try {
-			const result: QueryResponse = await query(this._connectionData, sql);
-
-			const items: DbRecordSet = fieldsMap
-				? FieldsMapperFactory.create().convertRecordset(result.items, fieldsMap)
-				: result.items;
-
-			return {
-				status: true,
-				rows: result.rows,
-				items,
-			};
-		} catch (err) {
-			const message: string = err instanceof Error ? err.message : 'An unknown error occurred';
-			return {
-				status: false,
-				message,
-			};
+	execute = async (fieldsMap?: TableFieldsMap): Promise<MySqlUpdateResponse> => {
+		const ERR_INVALID_RESPONSE: string = 'Invalid response from mysql2/promise';
+		const validation: Validation = this.validate();
+		if (!validation.status) {
+			return new Promise<MySqlUpdateResponse>((res, rej) => rej(new Error(validation.message)));
+		} else {
+			const sql: string = sqlBuilder.getUpdate(this._from, this._object, this._where, fieldsMap || {});
+			return new Promise<MySqlUpdateResponse>(async (resolve, reject) => {
+				try {
+					const response: ResultSetHeader = await getResultSetHeader(sql, this._connectionData);
+					const { affectedRows, info } = response;
+					const changedRows = getChangedRowsFromInfo(info);
+					resolve({ affectedRows, changedRows });
+				} catch (err: unknown) {
+					reject(err);
+				}
+			});
 		}
 	};
 
-	private validate = (): void => {
-		if (!this._from) throw new Error('UPDATE cannot be executed if [tableName] has not been set');
-		if (this._where.length === 0) throw new Error('UPDATE cannot be executed without any condition');
+	private validate = (): Validation => {
+		const errors: string[] = [];
+		if (!this._from) errors.push('UPDATE cannot be executed if [tableName] has not been set');
+		if (this._where.length === 0) errors.push('UPDATE cannot be executed without any condition');
 		if (Object.keys(this._object || {}).length === 0)
-			throw new Error('UPDATE cannot be executed if [object] has not been set');
+			errors.push('UPDATE cannot be executed if [object] has not been set');
+		return {
+			status: errors.length === 0,
+			message: errors.join(),
+		};
 	};
 }

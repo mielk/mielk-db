@@ -1,8 +1,14 @@
 import { ConnectionData, WhereCondition, WhereOperator, RequestType } from '../../src/models/sql';
 import { TableFieldsMap, DbStructure } from '../../src/models/fields';
 import { Update } from '../../src/actions/update';
-import { query } from '../../src/mysql';
+import { isResultSetHeader, query } from '../../src/mysql';
 import { getUpdate } from '../../src/sqlBuilder';
+// import { MySqlResponse, QueryResponse } from '../../src/models/responses';
+import { DbConnectionError } from '../../src/errors/DbConnectionError';
+import { SqlProcessingError } from '../../src/errors/SqlProcessingError';
+import { createConnection, ResultSetHeader } from 'mysql2/promise';
+import { ObjectOfAny } from 'mielk-fn/lib/models/common';
+import { MySqlUpdateResponse } from '../../src/models/responses';
 
 const config: ConnectionData = {
 	host: 'host',
@@ -11,36 +17,34 @@ const config: ConnectionData = {
 	password: 'password',
 };
 
-const itemsFieldsMap: TableFieldsMap = { id: 'item_id', name: 'item_name' };
+const sql: string = 'UPDATE';
 const usersTable: string = 'users';
 const usersFieldsMap: TableFieldsMap = { id: 'user_id', name: 'user_name', isActive: 'is_active' };
-const structureItem = (table: string, fieldsMap: TableFieldsMap) => {
-	return {
-		table,
-		view: table,
-		key: 'id',
-		fieldsMap,
-	};
-};
-const dbStructure: DbStructure = {
-	items: structureItem('items', itemsFieldsMap),
-	users: structureItem('users', usersFieldsMap),
-};
-
-const sql: string = 'UPDATE';
-
 const originalRecordset = [
 	{ user_id: 1, user_name: 'Adam' },
 	{ user_id: 2, user_name: 'Bartek' },
 ];
-
 const convertedRecordset = [
 	{ id: 1, name: 'Adam' },
 	{ id: 2, name: 'Bartek' },
 ];
 
-/* MOCKS */
+const createResultSetHeader = (affectedRows: number = 6, changedRows: number = 3): ResultSetHeader => {
+	return {
+		constructor: {
+			name: 'ResultSetHeader',
+		},
+		fieldCount: 0,
+		affectedRows,
+		insertId: 0,
+		info: `Rows matched: ${affectedRows}  Changed: ${changedRows}  Warnings: 0`,
+		serverStatus: 2,
+		warningStatus: 0,
+		changedRows,
+	};
+};
 
+/* MOCKS */
 const mockFieldsMapper = {
 	convertRecordset: jest.fn(() => convertedRecordset),
 };
@@ -48,10 +52,12 @@ jest.mock('../../src/factories/FieldsMapperFactory', () => ({
 	create: jest.fn(() => mockFieldsMapper),
 }));
 jest.mock('../../src/sqlBuilder', () => ({ getUpdate: jest.fn() }));
-jest.mock('../../src/mysql', () => ({ query: jest.fn(() => ({ status: true, rows: 2, items: originalRecordset })) }));
-
+jest.mock('mysql2/promise', () => ({ createConnection: jest.fn() }));
+const mockQuery: jest.MockedFunction<any> = jest.fn();
+const mockCreateConnection: jest.MockedFunction<any> = (createConnection as jest.MockedFunction<any>).mockResolvedValue({
+	query: mockQuery,
+});
 const mockGetUpdate: jest.MockedFunction<any> = getUpdate as jest.MockedFunction<any>;
-const mockMySqlQuery: jest.MockedFunction<any> = query as jest.MockedFunction<any>;
 
 describe('constructor', () => {
 	test('should create new instance of Update class', () => {
@@ -161,8 +167,10 @@ describe('execute', () => {
 
 	test('sqlBuilder should be called once and with correct parameters if fieldsMap is not specified', async () => {
 		const object = { name: 'John', surname: 'Smith' };
-
 		const update: Update = new Update(config).from(usersTable).object(object).where('name', WhereOperator.Equal, null);
+
+		mockQuery.mockResolvedValueOnce([createResultSetHeader(2, 1), []]);
+
 		await update.execute().then(() => {
 			const props = update.___props();
 			expect(getUpdate).toHaveBeenCalledTimes(1);
@@ -175,6 +183,8 @@ describe('execute', () => {
 
 		const update: Update = new Update(config).from(usersTable).object(object).where('name', WhereOperator.Equal, null);
 
+		mockQuery.mockResolvedValueOnce([createResultSetHeader(2, 1), []]);
+
 		await update.execute(usersFieldsMap).then(() => {
 			const props = update.___props();
 			expect(getUpdate).toHaveBeenCalledTimes(1);
@@ -182,76 +192,79 @@ describe('execute', () => {
 		});
 	});
 
-	test('mysql should be called once and with correct parameters', async () => {
+	test('should throw an error if connection to the database failed', async () => {
+		const message: string = 'err';
+		const expectedMessage: string = `Error while trying to establish connection | ${message}`;
+		const object: ObjectOfAny = { id: 1, name: 'A' };
+		const where1: WhereCondition = { field: 'name', operator: WhereOperator.Equal, value: null };
+
+		mockCreateConnection.mockRejectedValueOnce(new Error(message));
+
+		expect.assertions(2);
+
+		await new Update(config)
+			.from('users')
+			.conditions(where1)
+			.object(object)
+			.execute()
+			.catch((err: unknown) => {
+				expect((err as Error).message).toEqual(expectedMessage);
+				expect(err instanceof DbConnectionError).toBeTruthy();
+			});
+	});
+
+	test('should throw an error if there is an error in SQL execution', async () => {
+		const message: string = 'err';
+		const expectedMessage: string = `Error while executing SQL | ${message}`;
+		const object: ObjectOfAny = { id: 1, name: 'A' };
+		const where1: WhereCondition = { field: 'name', operator: WhereOperator.Equal, value: null };
+
+		mockQuery.mockRejectedValueOnce(new Error(message));
+
+		expect.assertions(2);
+
+		await new Update(config)
+			.from('users')
+			.conditions(where1)
+			.object(object)
+			.execute()
+			.catch((err: unknown) => {
+				expect((err as Error).message).toEqual(expectedMessage);
+				expect(err instanceof SqlProcessingError).toBeTruthy();
+			});
+	});
+
+	test('should throw an error if there is an unexecpted response from mysql2/promise', async () => {
+		const expectedMessage: string = `Invalid response from mysql2/promise`;
+		const where1: WhereCondition = { field: 'name', operator: WhereOperator.Equal, value: null };
+		const object = { id: 1, name: 'abc' };
+
+		mockQuery.mockResolvedValue([2, 3, [{ value: 123 }], []]);
+
+		expect.assertions(2);
+
+		await new Update(config)
+			.from('users')
+			.conditions(where1)
+			.object(object)
+			.execute()
+			.catch((err: unknown) => {
+				expect((err as Error).message).toEqual(expectedMessage);
+				expect(err instanceof SqlProcessingError).toBeTruthy();
+			});
+	});
+
+	test('should return correct result', async () => {
+		const affectedRows: number = 5;
+		const changedRows: number = 3;
 		const object = { name: 'John', surname: 'Smith' };
 		const update: Update = new Update(config).from(usersTable).object(object).where('name', WhereOperator.Equal, null);
 
-		mockGetUpdate.mockReturnValue(sql);
+		mockQuery.mockResolvedValueOnce([createResultSetHeader(affectedRows, changedRows), []]);
 
-		await update.execute().then(() => {
-			expect(query).toHaveBeenCalledTimes(1);
-			expect(query).toHaveBeenCalledWith(config, sql);
-		});
-	});
-
-	test('if fieldsMap is specified, FieldsMapper should be invoked on the query result', async () => {
-		const object = { name: 'John', surname: 'Smith' };
-		const update: Update = new Update(config).from(usersTable).object(object).where('name', WhereOperator.Equal, null);
-
-		await update.execute(usersFieldsMap).then(() => {
-			expect(mockFieldsMapper.convertRecordset).toHaveBeenCalledTimes(1);
-			expect(mockFieldsMapper.convertRecordset).toHaveBeenCalledWith(originalRecordset, usersFieldsMap);
-		});
-	});
-
-	test('if fieldsMap is not specified, FieldsMapper should not be invoked on the query result', async () => {
-		const object = { name: 'John', surname: 'Smith' };
-		const update: Update = new Update(config).from(usersTable).object(object).where('name', WhereOperator.Equal, null);
-
-		await update.execute().then(() => {
-			expect(mockFieldsMapper.convertRecordset).toHaveBeenCalledTimes(0);
-		});
-	});
-
-	test('should return correct result if fieldsMap is specified', async () => {
-		const object = { name: 'John', surname: 'Smith' };
-
-		const update: Update = new Update(config).from(usersTable).object(object).where('name', WhereOperator.Equal, null);
-
-		await update.execute(usersFieldsMap).then((result) => {
-			expect(result.status).toBeTruthy();
-			expect(result.rows).toEqual(2);
-			expect(result.items).toEqual(convertedRecordset);
-		});
-	});
-
-	test('should return correct result if fieldsMap is not specified', async () => {
-		const object = { name: 'John', surname: 'Smith' };
-
-		const update: Update = new Update(config).from(usersTable).object(object).where('name', WhereOperator.Equal, null);
-
-		await update.execute().then((result) => {
-			expect(result.status).toBeTruthy();
-			expect(result.rows).toEqual(2);
-			expect(result.items).toEqual(originalRecordset);
-			expect(result.message).toBeUndefined();
-		});
-	});
-
-	test('should return falsy status and error message result if error was thrown by mysql', async () => {
-		const errorMessage: string = 'Error message';
-		const object = { name: 'John', surname: 'Smith' };
-		const update: Update = new Update(config).from('table').object(object).where('name', WhereOperator.Equal, null);
-
-		mockMySqlQuery.mockImplementation(() => {
-			throw new Error(errorMessage);
-		});
-
-		await update.execute().then((result) => {
-			expect(result.status).toBeFalsy();
-			expect(result.rows).toBeUndefined();
-			expect(result.items).toBeUndefined();
-			expect(result.message).toEqual(errorMessage);
+		await update.execute(usersFieldsMap).then((result: MySqlUpdateResponse) => {
+			expect(result.affectedRows).toEqual(affectedRows);
+			expect(result.changedRows).toEqual(changedRows);
 		});
 	});
 });

@@ -1,6 +1,6 @@
 import { FieldsMapper } from '../src/fieldsMapper';
 import { TableFieldsMap, DbFieldsMap } from '../src/models/fields';
-import { DbRecordSet, MultiRecordSet } from '../src/models/records';
+import { MultiRecordSet, DbRecordSet } from '../src/models/records';
 
 const languagesTable: string = 'languages';
 const usersTable: string = 'users';
