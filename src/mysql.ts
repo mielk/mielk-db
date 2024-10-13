@@ -4,8 +4,10 @@ import { DbField } from './models/fields.js';
 import { SqlProcessingError } from './errors/SqlProcessingError.js';
 import { DbConnectionError } from './errors/DbConnectionError.js';
 import { isObject } from 'mielk-fn/lib/methods/variables.js';
-import regex from 'mielk-fn/lib/methods/regex.js';
-import { DbRecordSet } from './models/records.js';
+import { regex } from 'mielk-fn';
+import { DbRecordSet, MultiRecordSet, ProcCallPacket } from './models/records.js';
+import globals from './globals.js';
+import { glob } from 'fs';
 
 const getConnection = async (connectionData: ConnectionData): Promise<Connection> => {
 	const ERR_CONNECTION: string = 'Error while trying to establish connection';
@@ -79,12 +81,26 @@ const isResultSetHeader = (value: any): value is ResultSetHeader => {
 	return true;
 };
 
-const isRowDataPacket = (value: any): boolean => {
+const isRowDataPacket = (value: any): value is RowDataPacket => {
 	if (!value) return false;
 	if (!Array.isArray(value)) return false;
 
 	const arr: unknown[] = [...value];
 	return arr.every((item) => isObject(item));
+};
+
+const getProcCallPacket = (value: any): ProcCallPacket | undefined => {
+	if (!value) return undefined;
+	if (isResultSetHeader(value)) return { items: [], header: value };
+	if (!Array.isArray(value)) return undefined;
+
+	const items = [...value];
+	const [header] = items.splice(-1, 1);
+
+	if (items.length === 0 && !header) return undefined;
+	if (items.some((item: any) => !isRowDataPacket(item))) return undefined;
+
+	return { items, header };
 };
 
 const getChangedRowsFromInfo = (info: string): number => {
@@ -99,23 +115,72 @@ const toDbFieldObject = (field: FieldPacket): DbField => ({
 	type: field.type,
 });
 
+const toMultiRecordSet = (recordSets: DbRecordSet | DbRecordSet[]): MultiRecordSet => {
+	if (Array.isArray(recordSets)) {
+		if (recordSets.length === 0) return {};
+		if (Array.isArray(recordSets[0])) {
+			if (recordSets.length === 1) {
+				const items = [...(recordSets[0] as DbRecordSet)];
+				return { items };
+			} else {
+				const items: MultiRecordSet = {};
+				let counter: number = 1;
+				let nameCache: string = '';
+				for (const rs of recordSets as DbRecordSet[]) {
+					const name: string = getRsNameFromRecordset(rs) || '';
+					if (name) {
+						nameCache = name;
+					} else if (nameCache) {
+						items[nameCache] = rs;
+						counter++;
+						nameCache = '';
+					} else {
+						items[globals.getDefaultRsNameForIndex(counter)] = rs;
+						counter++;
+					}
+				}
+				return items;
+			}
+		} else {
+			return { [globals.defaultRsName]: recordSets as DbRecordSet };
+		}
+	} else {
+		return {};
+	}
+};
+
+const getRsNameFromRecordset = (rs: DbRecordSet): string | undefined => {
+	if (rs.length !== 1) return undefined;
+
+	const obj = rs[0];
+	const keys = Object.keys(obj);
+	if (keys.length !== 1) return undefined;
+	if (keys[0] !== globals.tableInfoRsColumn) return undefined;
+
+	return obj[globals.tableInfoRsColumn] as string;
+};
+
 export {
 	getConnection,
 	query,
-	isResultSetHeader,
-	isRowDataPacket,
-	createFieldsArray,
-	getChangedRowsFromInfo,
 	getResultSetHeader,
 	getDbRecordset,
+	isResultSetHeader,
+	isRowDataPacket,
+	getProcCallPacket,
+	createFieldsArray,
+	getChangedRowsFromInfo,
+	toMultiRecordSet,
 };
 export default {
 	getConnection,
 	query,
-	isResultSetHeader,
-	isRowDataPacket,
-	createFieldsArray,
-	getChangedRowsFromInfo,
 	getResultSetHeader,
 	getDbRecordset,
+	isResultSetHeader,
+	isRowDataPacket,
+	getProcCallPacket,
+	createFieldsArray,
+	getChangedRowsFromInfo,
+	toMultiRecordSet,
 };

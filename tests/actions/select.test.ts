@@ -1,4 +1,4 @@
-import { ConnectionData, WhereCondition, WhereOperator, RequestType, OrderRule } from '../../src/models/sql';
+import { ConnectionData, WhereCondition, WhereOperator, OrderRule } from '../../src/models/sql';
 import { TableFieldsMap } from '../../src/models/fields';
 import { Select } from '../../src/actions/select';
 import { getSelect } from '../../src/sqlBuilder';

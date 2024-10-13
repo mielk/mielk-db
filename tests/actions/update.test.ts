@@ -1,9 +1,7 @@
-import { ConnectionData, WhereCondition, WhereOperator, RequestType } from '../../src/models/sql';
-import { TableFieldsMap, DbStructure } from '../../src/models/fields';
+import { ConnectionData, WhereCondition, WhereOperator } from '../../src/models/sql';
+import { TableFieldsMap } from '../../src/models/fields';
 import { Update } from '../../src/actions/update';
-import { isResultSetHeader, query } from '../../src/mysql';
 import { getUpdate } from '../../src/sqlBuilder';
-// import { MySqlResponse, QueryResponse } from '../../src/models/responses';
 import { DbConnectionError } from '../../src/errors/DbConnectionError';
 import { SqlProcessingError } from '../../src/errors/SqlProcessingError';
 import { createConnection, ResultSetHeader } from 'mysql2/promise';

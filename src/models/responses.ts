@@ -50,6 +50,7 @@ export type MySqlDeleteResponse = {
 };
 
 export type MySqlProcResponse = {
-	items: MultiRecordSet;
 	affectedRows: number;
+	changedRows: number;
+	items: MultiRecordSet;
 };

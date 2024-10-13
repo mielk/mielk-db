@@ -1,12 +1,13 @@
 import { ObjectOfAny } from 'mielk-fn/lib/models/common.js';
 import { ConnectionData } from '../models/sql.js';
 import { MySqlProcResponse } from '../models/responses.js';
-import { getConnection, isResultSetHeader, query } from '../mysql.js';
+import { getChangedRowsFromInfo, getConnection, getProcCallPacket, query, toMultiRecordSet } from '../mysql.js';
 import sqlBuilder from '../sqlBuilder.js';
 import { TableFieldsMap } from '../models/fields.js';
 import { Validation } from '../models/generic.js';
-import { Connection } from 'mysql2/promise';
+import { Connection, QueryResult } from 'mysql2/promise';
 import { SqlProcessingError } from '../errors/SqlProcessingError.js';
+import { MultiRecordSet, ProcCallPacket } from '../models/records.js';
 
 export class Proc {
 	private _connectionData: ConnectionData;
@@ -48,11 +49,17 @@ export class Proc {
 			return new Promise<MySqlProcResponse>(async (resolve, reject) => {
 				try {
 					const connection: Connection = await getConnection(this._connectionData);
-					const response = await query(sql, connection);
-					if (isResultSetHeader(response)) {
-						const { insertId, affectedRows } = response;
-						//Info: "Records: 1  Duplicates: 0  Warnings: 0"
-						// resolve({ insertId, affectedRows });
+					const response: QueryResult = await query(sql, connection);
+					const packet: ProcCallPacket | undefined = getProcCallPacket(response);
+					if (packet) {
+						const { affectedRows, info } = packet.header;
+						const changedRows: number = getChangedRowsFromInfo(info);
+						const response: MySqlProcResponse = {
+							affectedRows,
+							changedRows,
+							items: toMultiRecordSet(packet.items),
+						};
+						resolve(response);
 					} else {
 						reject(new SqlProcessingError(ERR_INVALID_RESPONSE));
 					}
