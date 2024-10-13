@@ -1,4 +1,4 @@
-import { ConnectionData } from '../../src/models/sql';
+import { ConnectionData, OperationType } from '../../src/models/sql';
 import { DbRecord } from '../../src/models/records';
 import { TableFieldsMap, DbStructure } from '../../src/models/fields';
 import { Insert } from '../../src/actions/insert';
@@ -6,7 +6,7 @@ import { getInsert, getSelect } from '../../src/sqlBuilder';
 import { SqlProcessingError } from '../../src/errors/SqlProcessingError';
 import { DbConnectionError } from '../../src/errors/DbConnectionError';
 import { createConnection, ResultSetHeader } from 'mysql2/promise';
-import { MySqlInsertResponse } from '../../src/models/responses';
+import { MySqlResponse } from '../../src/models/responses';
 
 const config: ConnectionData = {
 	host: 'host',
@@ -223,12 +223,18 @@ describe('execute', () => {
 		const affectedRows: number = 1;
 		const object = { id: 1, name: 'abc' };
 		const insert: Insert = new Insert(config).into('users').object(object);
+		const expectedResponse: MySqlResponse = {
+			operationType: OperationType.Insert,
+			affectedRows,
+			changedRows: 0,
+			insertId,
+			items: {},
+		};
 
 		mockQuery.mockResolvedValue([createResultSetHeader(insertId, affectedRows), []]);
 
-		await insert.execute().then((response: MySqlInsertResponse) => {
-			expect(response.insertId).toBe(insertId);
-			expect(response.affectedRows).toBe(affectedRows);
+		await insert.execute().then((response: MySqlResponse) => {
+			expect(response).toEqual(expectedResponse);
 		});
 	});
 });

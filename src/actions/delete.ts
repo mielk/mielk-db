@@ -1,13 +1,12 @@
 import { ObjectOfAny } from 'mielk-fn/lib/models/common.js';
-import { ConnectionData } from '../models/sql.js';
+import { ConnectionData, OperationType } from '../models/sql.js';
 import { WhereCondition, WhereOperator } from '../models/sql.js';
 import { TableFieldsMap } from '../models/fields.js';
 import sqlBuilder from '../sqlBuilder.js';
-import { MySqlDeleteResponse } from '../models/responses.js';
-import { Connection, ResultSetHeader } from 'mysql2/promise';
+import { MySqlResponse } from '../models/responses.js';
+import { ResultSetHeader } from 'mysql2/promise';
 import { Validation } from '../models/generic.js';
-import { SqlProcessingError } from '../errors/SqlProcessingError.js';
-import { getConnection, getResultSetHeader, isResultSetHeader, query } from '../mysql.js';
+import { getResultSetHeader, toMySqlResponse } from '../mysql.js';
 
 export class Delete {
 	private _connectionData: ConnectionData;
@@ -53,18 +52,17 @@ export class Delete {
 		return this;
 	}
 	//: Promise<MySqlDeleteResponse>
-	execute = async (fieldsMap?: TableFieldsMap) => {
-		const ERR_INVALID_RESPONSE: string = 'Invalid response from mysql2/promise';
+	execute = async (fieldsMap?: TableFieldsMap): Promise<MySqlResponse> => {
 		const validation: Validation = this.validate();
 		if (!validation.status) {
-			return new Promise<MySqlDeleteResponse>((res, rej) => rej(new Error(validation.message)));
+			return new Promise<MySqlResponse>((res, rej) => rej(new Error(validation.message)));
 		} else {
 			const sql: string = sqlBuilder.getDelete(this._from, this._where, fieldsMap || {});
-			return new Promise<MySqlDeleteResponse>(async (resolve, reject) => {
+			return new Promise<MySqlResponse>(async (resolve, reject) => {
 				try {
 					const response: ResultSetHeader = await getResultSetHeader(sql, this._connectionData);
 					const { affectedRows } = response;
-					resolve({ affectedRows });
+					resolve(toMySqlResponse({ operationType: OperationType.Delete, affectedRows }));
 				} catch (err: unknown) {
 					reject(err);
 				}

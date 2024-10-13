@@ -1,10 +1,10 @@
-import { RequestType } from './models/sql.js';
+import { OperationType } from './models/sql.js';
 
-const getRequestTypeFromSql = (sql: string): RequestType => {
-	for (const requestType of Object.values(RequestType)) {
+const getOperationTypeFromSql = (sql: string): OperationType => {
+	for (const requestType of Object.values(OperationType)) {
 		if (requestType.length && sql.toUpperCase().trim().startsWith(requestType)) return requestType;
 	}
-	return RequestType.Unknown;
+	return OperationType.Unknown;
 };
 
-export default { getRequestTypeFromSql };
+export default { getOperationTypeFromSql };

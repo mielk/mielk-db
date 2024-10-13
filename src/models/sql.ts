@@ -1,9 +1,10 @@
-export enum RequestType {
+export enum OperationType {
 	Unknown = '',
 	Select = 'SELECT',
 	Insert = 'INSERT',
 	Update = 'UPDATE',
 	Delete = 'DELETE',
+	Proc = 'PROC',
 }
 
 export enum WhereOperator {

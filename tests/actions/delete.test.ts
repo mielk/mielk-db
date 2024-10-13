@@ -1,11 +1,11 @@
-import { ConnectionData, WhereCondition, WhereOperator } from '../../src/models/sql';
+import { ConnectionData, OperationType, WhereCondition, WhereOperator } from '../../src/models/sql';
 import { TableFieldsMap } from '../../src/models/fields';
 import { Delete } from '../../src/actions/delete';
 import { getDelete } from '../../src/sqlBuilder';
 import { createConnection, ResultSetHeader } from 'mysql2/promise';
 import { DbConnectionError } from '../../src/errors/DbConnectionError';
 import { SqlProcessingError } from '../../src/errors/SqlProcessingError';
-import { MySqlDeleteResponse } from '../../src/models/responses';
+import { MySqlResponse } from '../../src/models/responses';
 
 const config: ConnectionData = {
 	host: 'host',
@@ -216,12 +216,18 @@ describe('execute', () => {
 	test('should return correct value', async () => {
 		const affectedRows: number = 2;
 		const del: Delete = new Delete(config).from('users').where('name', WhereOperator.Equal, null);
-		const expectedResponse: MySqlDeleteResponse = { affectedRows: 1 };
+		const expectedResponse: MySqlResponse = {
+			operationType: OperationType.Delete,
+			affectedRows,
+			changedRows: 0,
+			insertId: 0,
+			items: {},
+		};
 
 		mockQuery.mockResolvedValue([createResultSetHeader(affectedRows), []]);
 
-		await del.execute().then((response: MySqlDeleteResponse) => {
-			expect(response.affectedRows).toBe(2);
+		await del.execute().then((response: MySqlResponse) => {
+			expect(response).toEqual(expectedResponse);
 		});
 	});
 });

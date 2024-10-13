@@ -1,13 +1,13 @@
 import { Connection, FieldPacket, QueryResult, ResultSetHeader, RowDataPacket, createConnection } from 'mysql2/promise';
 import { ConnectionData } from './models/sql.js';
-import { DbField } from './models/fields.js';
+import { DbField, DbFieldsMap, TableFieldsMap } from './models/fields.js';
 import { SqlProcessingError } from './errors/SqlProcessingError.js';
 import { DbConnectionError } from './errors/DbConnectionError.js';
 import { isObject } from 'mielk-fn/lib/methods/variables.js';
-import { regex } from 'mielk-fn';
+import { objects, regex } from 'mielk-fn';
 import { DbRecordSet, MultiRecordSet, ProcCallPacket } from './models/records.js';
 import globals from './globals.js';
-import { glob } from 'fs';
+import { IMySqlResponse, MySqlResponse } from './models/responses.js';
 
 const getConnection = async (connectionData: ConnectionData): Promise<Connection> => {
 	const ERR_CONNECTION: string = 'Error while trying to establish connection';
@@ -160,6 +160,42 @@ const getRsNameFromRecordset = (rs: DbRecordSet): string | undefined => {
 	return obj[globals.tableInfoRsColumn] as string;
 };
 
+const toMySqlResponse = (response: IMySqlResponse): MySqlResponse => {
+	const ERR_PROCESSING_RESPONSE: string = 'Error while converting response to MySqlResponse type';
+	if (!objects.isNonEmptyObject(response)) {
+		throw new Error(ERR_PROCESSING_RESPONSE);
+	}
+
+	const { items, affectedRows, changedRows, insertId } = response as any;
+	if ([items, affectedRows, changedRows, insertId].every((i) => i === undefined)) {
+		throw new Error(ERR_PROCESSING_RESPONSE);
+	}
+
+	return {
+		operationType: response.operationType,
+		items: items ? (Array.isArray(items) ? toMultiRecordSet(items) : items) : {},
+		affectedRows: affectedRows || 0,
+		changedRows: changedRows || 0,
+		insertId: insertId || 0,
+	};
+};
+
+const toDbFieldsMap = (fields: DbFieldsMap | TableFieldsMap | undefined): DbFieldsMap => {
+	if (fields === undefined) {
+		return {};
+	} else if (objects.isNonEmptyObject(fields)) {
+		if (Object.values(fields).every((f) => objects.isNonEmptyObject(f))) {
+			//already map
+			return fields as DbFieldsMap;
+		} else {
+			//single table fields
+			return { items: fields as TableFieldsMap };
+		}
+	} else {
+		return {};
+	}
+};
+
 export {
 	getConnection,
 	query,
@@ -171,6 +207,8 @@ export {
 	createFieldsArray,
 	getChangedRowsFromInfo,
 	toMultiRecordSet,
+	toMySqlResponse,
+	toDbFieldsMap,
 };
 export default {
 	getConnection,
@@ -183,4 +221,6 @@ export default {
 	createFieldsArray,
 	getChangedRowsFromInfo,
 	toMultiRecordSet,
+	toMySqlResponse,
+	toDbFieldsMap,
 };

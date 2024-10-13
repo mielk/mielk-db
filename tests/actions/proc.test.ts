@@ -1,9 +1,11 @@
-import { ConnectionData } from '../../src/models/sql';
+import { ConnectionData, OperationType } from '../../src/models/sql';
 import { Proc } from '../../src/actions/proc';
 import { getCallProc } from '../../src/sqlBuilder';
 import { ResultSetHeader, createConnection } from 'mysql2/promise';
-import { MySqlProcResponse } from '../../src/models/responses';
+import { MySqlResponse } from '../../src/models/responses';
 import { DbRecordSet } from '../../lib/models/records';
+import { MultiRecordSet } from '../../src/models/records';
+import { DbFieldsMap, TableFieldsMap } from '../../src/models/fields';
 
 const createResultSetHeader = (affectedRows: number = 1, changedRows: number = 1): ResultSetHeader => {
 	return {
@@ -27,6 +29,21 @@ const config: ConnectionData = {
 	password: 'password',
 };
 
+const usersFieldsMap: TableFieldsMap = {
+	id: 'user_id',
+	name: 'user_name',
+	isActive: 'is_active',
+};
+const itemsFieldsMap: TableFieldsMap = {
+	id: 'item_id',
+	name: 'item_name',
+	isActive: 'is_active',
+};
+const fieldsMap: DbFieldsMap = {
+	users: usersFieldsMap,
+	items: itemsFieldsMap,
+};
+
 const procName: string = 'PROC_NAME';
 const sql: string = `CALL ${procName}()`;
 
@@ -35,17 +52,36 @@ const sql: string = `CALL ${procName}()`;
 // 	{ user_id: 2, user_name: 'Bartek' },
 // ];
 
-const rs: DbRecordSet = [
-	{ id: 1, name: 'Adam' },
-	{ id: 2, name: 'Bartek' },
+const rsUsers: DbRecordSet = [
+	{ user_id: 1, user_name: 'Adam', is_active: true },
+	{ user_id: 2, user_name: 'Bartek', is_active: true },
+];
+const rsItems: DbRecordSet = [
+	{ item_id: 1, item_name: 'A', is_active: true },
+	{ item_id: 2, item_name: 'B', is_active: true },
 ];
 
+const rsUsersConverted: DbRecordSet = [
+	{ id: 1, name: 'Adam', isActive: true },
+	{ id: 2, name: 'Bartek', isActive: true },
+];
+const multiRsConverted: MultiRecordSet = {
+	users: [
+		{ id: 1, name: 'Adam', isActive: true },
+		{ id: 2, name: 'Bartek', isActive: true },
+	],
+	items: [
+		{ id: 1, name: 'A', isActive: true },
+		{ id: 2, name: 'B', isActive: true },
+	],
+};
 // const convertedRecordsets = {};
 
 /* MOCKS */
 
 const mockFieldsMapper = {
-	convertRecordset: jest.fn(() => rs),
+	convertRecordset: jest.fn(() => rsUsersConverted),
+	convertMultiRecordset: jest.fn(() => multiRsConverted),
 };
 jest.mock('../../src/factories/FieldsMapperFactory', () => ({
 	create: jest.fn(() => mockFieldsMapper),
@@ -107,14 +143,18 @@ describe('execute', () => {
 		const proc: Proc = new Proc(config).name(procName);
 		const affectedRows: number = 4;
 		const changedRows: number = 3;
+		const expectedResponse: MySqlResponse = {
+			operationType: OperationType.Proc,
+			affectedRows,
+			changedRows,
+			insertId: 0,
+			items: {},
+		};
 
 		mockQuery.mockResolvedValueOnce([createResultSetHeader(affectedRows, changedRows), []]);
 
-		await proc.execute().then((result: MySqlProcResponse) => {
-			expect(result).toBeTruthy();
-			expect(result.affectedRows).toEqual(affectedRows);
-			expect(result.changedRows).toEqual(changedRows);
-			expect(result.items).toEqual({});
+		await proc.execute().then((response: MySqlResponse) => {
+			expect(response).toEqual(expectedResponse);
 		});
 	});
 
@@ -122,14 +162,18 @@ describe('execute', () => {
 		const proc: Proc = new Proc(config).name(procName);
 		const affectedRows: number = 4;
 		const changedRows: number = 3;
+		const expectedResponse: MySqlResponse = {
+			operationType: OperationType.Proc,
+			affectedRows,
+			changedRows,
+			insertId: 0,
+			items: { items: rsUsers },
+		};
 
-		mockQuery.mockResolvedValueOnce([[rs, createResultSetHeader(affectedRows, changedRows)], []]);
+		mockQuery.mockResolvedValueOnce([[rsUsers, createResultSetHeader(affectedRows, changedRows)], []]);
 
-		await proc.execute().then((result: MySqlProcResponse) => {
-			expect(result).toBeTruthy();
-			expect(result.affectedRows).toEqual(affectedRows);
-			expect(result.changedRows).toEqual(changedRows);
-			expect(result.items).toEqual({ items: rs });
+		await proc.execute().then((response: MySqlResponse) => {
+			expect(response).toEqual(expectedResponse);
 		});
 	});
 
@@ -141,14 +185,18 @@ describe('execute', () => {
 			{ id: 1, value: 'a' },
 			{ id: 2, value: 'b' },
 		];
+		const expectedResponse: MySqlResponse = {
+			operationType: OperationType.Proc,
+			affectedRows,
+			changedRows,
+			insertId: 0,
+			items: { items_1: rsUsers, items_2: rs2 },
+		};
 
-		mockQuery.mockResolvedValueOnce([[rs, rs2, createResultSetHeader(affectedRows, changedRows)], []]);
+		mockQuery.mockResolvedValueOnce([[rsUsers, rs2, createResultSetHeader(affectedRows, changedRows)], []]);
 
-		await proc.execute().then((result: MySqlProcResponse) => {
-			expect(result).toBeTruthy();
-			expect(result.affectedRows).toEqual(affectedRows);
-			expect(result.changedRows).toEqual(changedRows);
-			expect(result.items).toEqual({ items_1: rs, items_2: rs2 });
+		await proc.execute().then((response: MySqlResponse) => {
+			expect(response).toEqual(expectedResponse);
 		});
 	});
 
@@ -160,11 +208,18 @@ describe('execute', () => {
 			{ id: 1, value: 'a' },
 			{ id: 2, value: 'b' },
 		];
+		const expectedResponse: MySqlResponse = {
+			operationType: OperationType.Proc,
+			affectedRows,
+			changedRows,
+			insertId: 0,
+			items: { ABC: rsUsers, DEF: rs2 },
+		};
 
 		mockQuery.mockResolvedValueOnce([
 			[
 				[{ recordsetName: 'ABC' }],
-				rs,
+				rsUsers,
 				[{ recordsetName: 'DEF' }],
 				rs2,
 				createResultSetHeader(affectedRows, changedRows),
@@ -172,11 +227,53 @@ describe('execute', () => {
 			[],
 		]);
 
-		await proc.execute().then((result: MySqlProcResponse) => {
-			expect(result).toBeTruthy();
-			expect(result.affectedRows).toEqual(affectedRows);
-			expect(result.changedRows).toEqual(changedRows);
-			expect(result.items).toEqual({ ABC: rs, DEF: rs2 });
+		await proc.execute().then((response: MySqlResponse) => {
+			expect(response).toEqual(expectedResponse);
+		});
+	});
+
+	test('if fieldsMap is specified, FieldsMapper should be invoked on the query result', async () => {
+		const proc: Proc = new Proc(config).name(procName);
+		const affectedRows: number = 8;
+		const changedRows: number = 5;
+		const items: MultiRecordSet = { items: rsItems, users: rsUsers };
+
+		mockQuery.mockResolvedValueOnce([
+			[
+				[{ recordsetName: 'users' }],
+				rsUsers,
+				[{ recordsetName: 'items' }],
+				rsItems,
+				createResultSetHeader(affectedRows, changedRows),
+			],
+			[],
+		]);
+
+		await proc.execute(fieldsMap).then(() => {
+			expect(mockFieldsMapper.convertMultiRecordset).toHaveBeenCalledTimes(1);
+			expect(mockFieldsMapper.convertMultiRecordset).toHaveBeenCalledWith(items, fieldsMap);
+		});
+	});
+
+	test('if fieldsMap is not specified, FieldsMapper should be not invoked on the query result', async () => {
+		const proc: Proc = new Proc(config).name(procName);
+		const affectedRows: number = 8;
+		const changedRows: number = 5;
+		const items: MultiRecordSet = { items: rsItems, users: rsUsers };
+
+		mockQuery.mockResolvedValueOnce([
+			[
+				[{ recordsetName: 'users' }],
+				rsUsers,
+				[{ recordsetName: 'items' }],
+				rsItems,
+				createResultSetHeader(affectedRows, changedRows),
+			],
+			[],
+		]);
+
+		await proc.execute().then(() => {
+			expect(mockFieldsMapper.convertMultiRecordset).toHaveBeenCalledTimes(0);
 		});
 	});
 });

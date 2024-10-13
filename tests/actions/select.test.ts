@@ -1,11 +1,11 @@
-import { ConnectionData, WhereCondition, WhereOperator, OrderRule } from '../../src/models/sql';
+import { ConnectionData, WhereCondition, WhereOperator, OrderRule, OperationType } from '../../src/models/sql';
 import { TableFieldsMap } from '../../src/models/fields';
 import { Select } from '../../src/actions/select';
 import { getSelect } from '../../src/sqlBuilder';
 import { SqlProcessingError } from '../../src/errors/SqlProcessingError';
 import { DbConnectionError } from '../../src/errors/DbConnectionError';
 import { createConnection } from 'mysql2/promise';
-import { MySqlSelectResponse } from '../../src/models/responses';
+import { MySqlResponse, MySqlSelectResponse } from '../../src/models/responses';
 
 const config: ConnectionData = {
 	host: 'host',
@@ -328,7 +328,7 @@ describe('execute', () => {
 		});
 	});
 
-	test('if fieldsMap is specified, FieldsMapper should not be invoked on the query result', async () => {
+	test('if fieldsMap is not specified, FieldsMapper should not be invoked on the query result', async () => {
 		const tableName: string = 'users';
 		const select: Select = new Select(config).from(tableName);
 
@@ -342,22 +342,36 @@ describe('execute', () => {
 	test('should return correct result if fieldsMap is specified', async () => {
 		const tableName: string = 'users';
 		const select: Select = new Select(config).from(tableName);
+		const expectedResponse: MySqlResponse = {
+			operationType: OperationType.Select,
+			affectedRows: 0,
+			changedRows: 0,
+			insertId: 0,
+			items: { items: convertedRecordset },
+		};
 
 		mockQuery.mockResolvedValueOnce([originalRecordset, [{ id: 1 }]]);
 
-		await select.execute(usersFieldsMap).then((response: MySqlSelectResponse) => {
-			expect(response.items).toEqual(convertedRecordset);
+		await select.execute(usersFieldsMap).then((response: MySqlResponse) => {
+			expect(response).toEqual(expectedResponse);
 		});
 	});
 
 	test('should return correct result if fieldsMap is not specified', async () => {
 		const tableName: string = 'users';
 		const select: Select = new Select(config).from(tableName);
+		const expectedResponse: MySqlResponse = {
+			operationType: OperationType.Select,
+			affectedRows: 0,
+			changedRows: 0,
+			insertId: 0,
+			items: { items: originalRecordset },
+		};
 
 		mockQuery.mockResolvedValueOnce([originalRecordset, [{ id: 1 }]]);
 
-		await select.execute().then((response: MySqlSelectResponse) => {
-			expect(response.items).toEqual(originalRecordset);
+		await select.execute().then((response: MySqlResponse) => {
+			expect(response).toEqual(expectedResponse);
 		});
 	});
 });

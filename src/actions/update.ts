@@ -1,13 +1,20 @@
 import { ObjectOfAny } from 'mielk-fn/lib/models/common.js';
-import { ConnectionData } from '../models/sql.js';
+import { ConnectionData, OperationType } from '../models/sql.js';
 import { WhereCondition, WhereOperator } from '../models/sql.js';
 import { DbRecord, DbRecordSet } from '../models/records.js';
-import { getChangedRowsFromInfo, getConnection, getResultSetHeader, isResultSetHeader, query } from '../mysql.js';
+import {
+	getChangedRowsFromInfo,
+	getConnection,
+	getResultSetHeader,
+	isResultSetHeader,
+	query,
+	toMySqlResponse,
+} from '../mysql.js';
 import sqlBuilder from '../sqlBuilder.js';
 import { TableFieldsMap } from '../models/fields.js';
 import FieldsMapperFactory from '../factories/FieldsMapperFactory.js';
 import { Validation } from '../models/generic.js';
-import { MySqlUpdateResponse } from '../models/responses.js';
+import { MySqlResponse, MySqlUpdateResponse } from '../models/responses.js';
 import { SqlProcessingError } from '../errors/SqlProcessingError.js';
 import { Connection, ResultSetHeader } from 'mysql2/promise';
 
@@ -60,19 +67,18 @@ export class Update {
 		return this;
 	}
 
-	execute = async (fieldsMap?: TableFieldsMap): Promise<MySqlUpdateResponse> => {
-		const ERR_INVALID_RESPONSE: string = 'Invalid response from mysql2/promise';
+	execute = async (fieldsMap?: TableFieldsMap): Promise<MySqlResponse> => {
 		const validation: Validation = this.validate();
 		if (!validation.status) {
-			return new Promise<MySqlUpdateResponse>((res, rej) => rej(new Error(validation.message)));
+			return new Promise<MySqlResponse>((res, rej) => rej(new Error(validation.message)));
 		} else {
 			const sql: string = sqlBuilder.getUpdate(this._from, this._object, this._where, fieldsMap || {});
-			return new Promise<MySqlUpdateResponse>(async (resolve, reject) => {
+			return new Promise<MySqlResponse>(async (resolve, reject) => {
 				try {
 					const response: ResultSetHeader = await getResultSetHeader(sql, this._connectionData);
 					const { affectedRows, info } = response;
 					const changedRows = getChangedRowsFromInfo(info);
-					resolve({ affectedRows, changedRows });
+					resolve(toMySqlResponse({ operationType: OperationType.Update, affectedRows, changedRows }));
 				} catch (err: unknown) {
 					reject(err);
 				}

@@ -1,10 +1,10 @@
 import sqlBuilder from '../sqlBuilder.js';
 import { ObjectOfAny } from 'mielk-fn/lib/models/common.js';
-import { ConnectionData, OrderRule } from '../models/sql.js';
+import { ConnectionData, OperationType, OrderRule } from '../models/sql.js';
 import { WhereCondition, WhereOperator } from '../models/sql.js';
-import { getDbRecordset } from '../mysql.js';
+import { getDbRecordset, toMySqlResponse } from '../mysql.js';
 import { TableFieldsMap } from '../models/fields.js';
-import { MySqlSelectResponse } from '../models/responses.js';
+import { MySqlResponse, MySqlSelectResponse } from '../models/responses.js';
 import { Validation } from '../models/generic.js';
 import { DbRecordSet } from '../models/records.js';
 import FieldsMapperFactory from '../factories/FieldsMapperFactory.js';
@@ -76,19 +76,18 @@ export class Select {
 		return this;
 	}
 
-	execute = async (fieldsMap?: TableFieldsMap): Promise<MySqlSelectResponse> => {
-		const ERR_INVALID_RESPONSE: string = 'Invalid response from mysql2/promise';
+	execute = async (fieldsMap?: TableFieldsMap): Promise<MySqlResponse> => {
 		const validation: Validation = this.validate();
 
 		if (!validation.status) {
-			return new Promise<MySqlSelectResponse>((res, rej) => rej(new Error(validation.message)));
+			return new Promise<MySqlResponse>((res, rej) => rej(new Error(validation.message)));
 		} else {
 			const sql: string = sqlBuilder.getSelect(this._fields, this._from, this._where, this._order, fieldsMap || {});
-			return new Promise<MySqlSelectResponse>(async (resolve, reject) => {
+			return new Promise<MySqlResponse>(async (resolve, reject) => {
 				try {
 					const rs: DbRecordSet = await getDbRecordset(sql, this._connectionData);
 					const items: DbRecordSet = fieldsMap ? FieldsMapperFactory.create().convertRecordset(rs, fieldsMap) : rs;
-					resolve({ items });
+					resolve(toMySqlResponse({ operationType: OperationType.Select, items }));
 				} catch (err: unknown) {
 					reject(err);
 				}

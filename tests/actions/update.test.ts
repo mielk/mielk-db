@@ -1,4 +1,4 @@
-import { ConnectionData, WhereCondition, WhereOperator } from '../../src/models/sql';
+import { ConnectionData, OperationType, WhereCondition, WhereOperator } from '../../src/models/sql';
 import { TableFieldsMap } from '../../src/models/fields';
 import { Update } from '../../src/actions/update';
 import { getUpdate } from '../../src/sqlBuilder';
@@ -6,7 +6,7 @@ import { DbConnectionError } from '../../src/errors/DbConnectionError';
 import { SqlProcessingError } from '../../src/errors/SqlProcessingError';
 import { createConnection, ResultSetHeader } from 'mysql2/promise';
 import { ObjectOfAny } from 'mielk-fn/lib/models/common';
-import { MySqlUpdateResponse } from '../../src/models/responses';
+import { MySqlResponse } from '../../src/models/responses';
 
 const config: ConnectionData = {
 	host: 'host',
@@ -15,13 +15,8 @@ const config: ConnectionData = {
 	password: 'password',
 };
 
-const sql: string = 'UPDATE';
 const usersTable: string = 'users';
 const usersFieldsMap: TableFieldsMap = { id: 'user_id', name: 'user_name', isActive: 'is_active' };
-const originalRecordset = [
-	{ user_id: 1, user_name: 'Adam' },
-	{ user_id: 2, user_name: 'Bartek' },
-];
 const convertedRecordset = [
 	{ id: 1, name: 'Adam' },
 	{ id: 2, name: 'Bartek' },
@@ -257,12 +252,18 @@ describe('execute', () => {
 		const changedRows: number = 3;
 		const object = { name: 'John', surname: 'Smith' };
 		const update: Update = new Update(config).from(usersTable).object(object).where('name', WhereOperator.Equal, null);
+		const expectedResponse: MySqlResponse = {
+			operationType: OperationType.Update,
+			affectedRows,
+			changedRows,
+			insertId: 0,
+			items: {},
+		};
 
 		mockQuery.mockResolvedValueOnce([createResultSetHeader(affectedRows, changedRows), []]);
 
-		await update.execute(usersFieldsMap).then((result: MySqlUpdateResponse) => {
-			expect(result.affectedRows).toEqual(affectedRows);
-			expect(result.changedRows).toEqual(changedRows);
+		await update.execute(usersFieldsMap).then((result: MySqlResponse) => {
+			expect(result).toEqual(expectedResponse);
 		});
 	});
 });

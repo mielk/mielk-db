@@ -1,9 +1,10 @@
 import { Connection, createConnection, FieldPacket, QueryResult, ResultSetHeader } from 'mysql2/promise';
 import mysql from '../src/mysql';
-import { ConnectionData } from '../src/models/sql';
-import { DbField } from '../src/models/fields';
-import { DbRecord, DbRecordSet, ProcCallPacket } from '../src/models/records';
+import { ConnectionData, OperationType } from '../src/models/sql';
+import { DbField, TableFieldsMap } from '../src/models/fields';
+import { DbRecordSet, ProcCallPacket } from '../src/models/records';
 import globals from '../src/globals';
+import { IMySqlResponse, MySqlResponse } from '../src/models/responses';
 
 const config: ConnectionData = {
 	host: 'host',
@@ -11,8 +12,6 @@ const config: ConnectionData = {
 	user: 'user',
 	password: 'password',
 };
-
-const sql: string = 'SELECT';
 
 const createResultSetHeader = (insertId: number, affectedRows: number = 1, info: string = ''): ResultSetHeader => {
 	return {
@@ -60,6 +59,12 @@ const rs2: DbRecordSet = [
 	{ id: 5, name: 'e' },
 	{ id: 6, name: 'f' },
 ];
+
+const usersFieldsMap: TableFieldsMap = {
+	id: 'user_id',
+	name: 'user_name',
+	isActive: 'is_active',
+};
 
 /* MOCKS */
 jest.mock('mysql2/promise', () => ({ createConnection: jest.fn() }));
@@ -330,8 +335,6 @@ describe('toMultiRecordSet', () => {
 			[{ [globals.tableInfoRsColumn]: 'tableB' }],
 			rs2,
 		];
-		console.log(recordsets);
-		console.log(toMultiRecordSet(recordsets));
 		expect(toMultiRecordSet(recordsets)).toEqual({ tableA: rs1, tableB: rs2 });
 	});
 
@@ -344,8 +347,116 @@ describe('toMultiRecordSet', () => {
 			[{ [globals.tableInfoRsColumn]: 'tableC' }],
 			rs3,
 		];
-		console.log(recordsets);
-		console.log(toMultiRecordSet(recordsets));
 		expect(toMultiRecordSet(recordsets)).toEqual({ tableA: rs1, items_2: rs2, tableC: rs3 });
+	});
+});
+
+describe('toMySqlResponse', () => {
+	const toMySqlResponse = mysql.toMySqlResponse;
+
+	test('throw an error if empty object is given', async () => {
+		try {
+		} catch (err: unknown) {
+			expect(toMySqlResponse({ operationType: OperationType.Unknown })).toThrow(
+				'Error while converting response to MySqlResponse type'
+			);
+		}
+	});
+
+	test('return proper MySqlResponse if only insertId is given', async () => {
+		const obj: IMySqlResponse = { operationType: OperationType.Insert, insertId: 1 };
+		const expected: MySqlResponse = {
+			operationType: OperationType.Insert,
+			insertId: 1,
+			affectedRows: 0,
+			changedRows: 0,
+			items: {},
+		};
+		expect(toMySqlResponse(obj)).toEqual(expected);
+	});
+
+	test('return proper MySqlResponse if only affectedRows is given', async () => {
+		const obj: IMySqlResponse = { operationType: OperationType.Update, affectedRows: 1 };
+		const expected: MySqlResponse = {
+			operationType: OperationType.Update,
+			insertId: 0,
+			affectedRows: 1,
+			changedRows: 0,
+			items: {},
+		};
+		expect(toMySqlResponse(obj)).toEqual(expected);
+	});
+
+	test('return proper MySqlResponse if only changedRows is given', async () => {
+		const obj: IMySqlResponse = { operationType: OperationType.Update, changedRows: 1 };
+		const expected: MySqlResponse = {
+			operationType: OperationType.Update,
+			insertId: 0,
+			affectedRows: 0,
+			changedRows: 1,
+			items: {},
+		};
+		expect(toMySqlResponse(obj)).toEqual(expected);
+	});
+
+	test('return proper MySqlResponse if combination of state is given', async () => {
+		const obj: IMySqlResponse = { operationType: OperationType.Proc, insertId: 1, affectedRows: 5 };
+		const expected: MySqlResponse = {
+			operationType: OperationType.Proc,
+			insertId: 1,
+			affectedRows: 5,
+			changedRows: 0,
+			items: {},
+		};
+		expect(toMySqlResponse(obj)).toEqual(expected);
+	});
+
+	test('return proper MySqlResponse if only items are given', async () => {
+		const items: DbRecordSet = [
+			{ id: 1, name: 'a' },
+			{ id: 2, name: 'b' },
+		];
+		const obj: IMySqlResponse = { operationType: OperationType.Select, items };
+		const expected: MySqlResponse = {
+			operationType: OperationType.Select,
+			insertId: 0,
+			affectedRows: 0,
+			changedRows: 0,
+			items: { items },
+		};
+		expect(toMySqlResponse(obj)).toEqual(expected);
+	});
+
+	test('return proper MySqlResponse if items and combination of state are given', async () => {
+		const items: DbRecordSet = [
+			{ id: 1, name: 'a' },
+			{ id: 2, name: 'b' },
+		];
+		const obj: IMySqlResponse = { operationType: OperationType.Proc, insertId: 1, affectedRows: 5, items };
+		const expected: MySqlResponse = {
+			operationType: OperationType.Proc,
+			insertId: 1,
+			affectedRows: 5,
+			changedRows: 0,
+			items: { items },
+		};
+		expect(toMySqlResponse(obj)).toEqual(expected);
+	});
+});
+
+describe('toDbFieldsMap', () => {
+	const toDbFieldsMap = mysql.toDbFieldsMap;
+
+	test('for undefined return empty object', async () => {
+		expect(toDbFieldsMap(undefined)).toEqual({});
+	});
+
+	test('for empty array return empty object', async () => {
+		expect(toDbFieldsMap({})).toEqual({});
+	});
+
+	test('for TableFieldsMap return prop DbFieldsMap', async () => {
+		const fieldsMap: TableFieldsMap = usersFieldsMap;
+		expect(toDbFieldsMap(fieldsMap)).toEqual({ items: fieldsMap });
 	});
 });
