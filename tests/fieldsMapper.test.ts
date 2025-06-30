@@ -2,9 +2,6 @@ import { FieldsMapper } from '../src/fieldsMapper';
 import { TableFieldsMap, DbFieldsMap } from '../src/models/fields';
 import { MultiRecordSet, DbRecordSet } from '../src/models/records';
 
-const languagesTable: string = 'languages';
-const usersTable: string = 'users';
-
 const languagesFieldsMap: TableFieldsMap = {
 	id: 'language_id',
 	name: 'language_name',
@@ -186,5 +183,38 @@ describe('convertMultiRecordset', () => {
 		};
 		const converted = fieldsManager.convertMultiRecordset(recordsets, dbFieldsMap);
 		expect(converted).toEqual(expected);
+	});
+});
+
+describe('normalizeDbRow', () => {
+	test('returns flat DbRecord as is', () => {
+		const manager: FieldsMapper = new FieldsMapper();
+		const input = { id: 1, name: 'Alice', active: true, score: null };
+		expect(manager.normalizeDbRecord(input)).toEqual(input);
+	});
+
+	test('unwraps one-level nested DbRecord', () => {
+		const manager: FieldsMapper = new FieldsMapper();
+		const input = { user: { id: 2, name: 'Bob' } };
+		const expected = { id: 2, name: 'Bob' };
+		expect(manager.normalizeDbRecord(input)).toEqual(expected);
+	});
+
+	test('throws on invalid structure (non-object)', () => {
+		const manager: FieldsMapper = new FieldsMapper();
+		expect(() => manager.normalizeDbRecord(null)).toThrow(/Unexpected row structure/);
+		expect(() => manager.normalizeDbRecord(42)).toThrow(/Unexpected row structure/);
+		expect(() => manager.normalizeDbRecord('string')).toThrow(/Unexpected row structure/);
+	});
+
+	test('throws on invalid nested structure', () => {
+		const manager: FieldsMapper = new FieldsMapper();
+		const input = { data: { id: 1, nested: { foo: 'bar' } } }; // nested object inside DbRecord not allowed
+		expect(() => manager.normalizeDbRecord(input)).toThrow(/Unexpected row structure/);
+	});
+
+	test('throws on array input', () => {
+		const manager: FieldsMapper = new FieldsMapper();
+		expect(() => manager.normalizeDbRecord([{ id: 1 }])).toThrow(/Unexpected row structure/);
 	});
 });
