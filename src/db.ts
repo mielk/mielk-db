@@ -4,17 +4,54 @@ import { Delete } from './actions/delete.js';
 import { Insert } from './actions/insert.js';
 import { Proc } from './actions/proc.js';
 import { ConnectionData } from './models/sql.js';
+import { createPool, Pool } from 'mysql2/promise';
 
-export default class Db {
-	constructor(private connection: ConnectionData) {}
+let pool: Pool;
+const connData: ConnectionData = {
+	host: 'localhost',
+	user: 'your_user',
+	password: 'your_pass',
+	database: 'your_db',
+};
 
-	select = () => new Select(this.connection);
+const setConnectionDetails = (connectionData: ConnectionData) => {
+	const { host, user, password, database } = connectionData;
+	connData.host = host;
+	connData.user = user;
+	connData.password = password;
+	connData.database = database;
 
-	update = () => new Update(this.connection);
+	pool = createPool({
+		host: host,
+		user: user,
+		password: password,
+		database: database,
+		charset: 'utf8mb4',
+		waitForConnections: true,
+		connectionLimit: 10, // Adjust depending on your needs
+		queueLimit: 0,
+	});
+};
 
-	delete = () => new Delete(this.connection);
+const select = () => new Select(connData);
 
-	insert = () => new Insert(this.connection);
+const update = () => new Update(connData);
 
-	proc = () => new Proc(this.connection);
-}
+const del = () => new Delete(connData);
+
+const insert = () => new Insert(connData);
+
+const proc = () => new Proc();
+
+const getPool = (): Pool => pool;
+
+export { setConnectionDetails, select, update, del, insert, proc, getPool };
+export default {
+	setConnectionDetails,
+	select,
+	update,
+	del,
+	insert,
+	proc,
+	getPool,
+};

@@ -28,3 +28,9 @@ export interface IFieldsMapper {
 	convertRecordset: (recordset: DbRecordSet, fieldsMap: TableFieldsMap) => DbRecordSet;
 	convertMultiRecordset: (rescordsets: MultiRecordSet, fieldsMaps: DbFieldsMap) => MultiRecordSet;
 }
+
+export type JsonPrimitive = string | number | boolean | Date | null;
+
+export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
+
+export type JsonRecordSet = { [key: string]: JsonValue };

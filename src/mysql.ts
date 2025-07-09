@@ -1,4 +1,13 @@
-import { Connection, FieldPacket, QueryResult, ResultSetHeader, RowDataPacket, createConnection } from 'mysql2/promise';
+import {
+	Connection,
+	FieldPacket,
+	Pool,
+	QueryResult,
+	ResultSetHeader,
+	RowDataPacket,
+	createConnection,
+	createPool,
+} from 'mysql2/promise';
 import { ConnectionData } from './models/sql.js';
 import { DbField, DbFieldsMap, TableFieldsMap } from './models/fields.js';
 import { SqlProcessingError } from './errors/SqlProcessingError.js';
@@ -27,7 +36,22 @@ const query = async (sql: string, connection: Connection): Promise<QueryResult> 
 
 	return new Promise((resolve, reject) => {
 		connection
-			.query({ sql, nestTables: true })
+			.query({ sql, nestTables: false })
+			.then((response) => {
+				const [result] = response;
+				resolve(result);
+			})
+			.catch((err: unknown) => {
+				reject(new SqlProcessingError(`${ERR_EXECUTING} | ${(err as Error).message}`));
+			});
+	});
+};
+
+const query2 = async (sql: string, pool: Pool): Promise<QueryResult> => {
+	const ERR_EXECUTING: string = 'Error while executing SQL';
+
+	return new Promise((resolve, reject) => {
+		pool.query(sql)
 			.then((response) => {
 				const [result] = response;
 				resolve(result);
@@ -199,6 +223,7 @@ const toDbFieldsMap = (fields: DbFieldsMap | TableFieldsMap | undefined): DbFiel
 export {
 	getConnection,
 	query,
+	query2,
 	getResultSetHeader,
 	getDbRecordset,
 	isResultSetHeader,
@@ -213,6 +238,7 @@ export {
 export default {
 	getConnection,
 	query,
+	query2,
 	getResultSetHeader,
 	getDbRecordset,
 	isResultSetHeader,

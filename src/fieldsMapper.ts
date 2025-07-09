@@ -12,6 +12,10 @@ export class FieldsMapper implements IFieldsMapper {
 		return result;
 	};
 
+	isRecordsetNameQuery = (recordset: DbRecordSet): boolean => {
+		return false;
+	};
+
 	convertRecordset = (recordset: DbRecordSet, fieldsMap: TableFieldsMap): DbRecordSet => {
 		const convertedFieldsMap: TableFieldsMap = objects.invert(fieldsMap);
 		return recordset.map((record) => this.convertRecord(record, convertedFieldsMap));
@@ -37,7 +41,6 @@ export class FieldsMapper implements IFieldsMapper {
 				val !== null
 			) {
 				const x = typeof val;
-				console.log(typeof val);
 				return false;
 			}
 		}

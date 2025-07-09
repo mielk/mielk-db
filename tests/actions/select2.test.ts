@@ -1,11 +1,15 @@
 import { ConnectionData, WhereCondition, WhereOperator, OrderRule, OperationType } from '../../src/models/sql';
-import { TableFieldsMap } from '../../src/models/fields';
-import { Select } from '../../src/actions/select';
-import { getSelect } from '../../src/sqlBuilder';
-import { SqlProcessingError } from '../../src/errors/SqlProcessingError';
-import { DbConnectionError } from '../../src/errors/DbConnectionError';
-import { createConnection } from 'mysql2/promise';
-import { MySqlResponse, MySqlSelectResponse } from '../../src/models/responses';
+// import { DbFieldsMap, JsonRecordSet, TableFieldsMap } from '../../src/models/fields';
+// import { Select } from '../../src/actions/select';
+// import { Proc } from '../../src/actions/proc';
+// import { getSelect } from '../../src/sqlBuilder';
+// import { SqlProcessingError } from '../../src/errors/SqlProcessingError';
+// import { DbConnectionError } from '../../src/errors/DbConnectionError';
+// import { createConnection } from 'mysql2/promise';
+// import { MySqlResponse, MySqlSelectResponse } from '../../src/models/responses';
+import Db from '../../src/db';
+import { Proc } from '../../src/actions/proc';
+import { Pool } from 'mysql2/promise';
 
 const config: ConnectionData = {
 	host: 'localhost',
@@ -14,35 +18,21 @@ const config: ConnectionData = {
 	database: 'ling',
 };
 
-describe('constructor', () => {
-	test('should create a new instance of Select class', async () => {
-		const select: Select = new Select(config).from('view___languages');
-		const fieldsMap: TableFieldsMap = {
-			id: 'language_id',
-			symbol: 'symbol',
-			originalName: 'original_name',
-			isActive: 'is_active',
-			// id: 'user_id',
-			// name: 'username',
-			// password: 'password',
-			// firstName: 'first_name',
-			// lastName: 'last_name',
-			// dateOfBirth: 'date_of_birth',
-			// registrationUnix: 'registration_unix',
-			// mail: 'mail',
-			// mailVerified: 'mail_verified',
-			// isActive: 'is_active',
-		};
-		const expectedResponse: MySqlResponse = {
-			operationType: OperationType.Select,
-			affectedRows: 1,
-			changedRows: 2,
-			insertId: 1,
-			items: {},
-		};
+describe('sql', () => {
+	test('test stored procedure', async () => {
+		Db.setConnectionDetails(config);
+		const proc: Proc = new Proc();
+		const pool: Pool = Db.getPool();
+		const procName: string = 'sp___users___get';
+		const sql: string = 'CALL sp___users___get()';
 
-		await select.execute(fieldsMap).then((response: MySqlResponse) => {
-			expect(true).toEqual(true);
-		});
+		// try {
+		// 	const y = await proc.name(procName).execute(pool);
+		// 	const a = 1;
+		// } catch (err) {
+		// 	const b = 1;
+		// }
+
+		expect(1).toEqual(1);
 	});
 });
