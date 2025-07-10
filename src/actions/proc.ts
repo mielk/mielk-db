@@ -53,34 +53,6 @@ export class Proc {
 		}
 	};
 
-	// execute2 = async (pool: Pool): Promise<JsonRecordSet> => {
-	// 	const ERR_INVALID_RESPONSE: string = 'Invalid response from mysql2/promise';
-	// 	const validation: Validation = this.validate();
-	// 	if (!validation.status) {
-	// 		return new Promise<JsonRecordSet>((res, rej) => rej(new Error(validation.message)));
-	// 	} else {
-	// 		const sql: string = 'SELECT * FROM users';
-	// 		// return pool.query(sql);
-	// 		// const sql: string = sqlBuilder.getCallProc(this._name, this._params);
-
-	// 		// const pool: Pool = Db.getPool();
-	// 		// const sql: string = 'CALL sp___users___get()';
-
-	// 		// const z = await pool.query('CALL sp___users___get()');
-
-	// 		// return new Promise<JsonRecordSet>((res, rej) => {
-	// 		// 	try {
-	// 		// 		pool.query(sql).then((result) => {
-	// 		// 			const x = 1;
-	// 		// 		});
-	// 		// 	} catch (err) {
-	// 		// 		console.error('Database error:', err);
-	// 		// 		const x = 1;
-	// 		// 	}
-	// 		// });
-	// 	}
-	// };
-
 	private validate = (): Validation => {
 		const errors: string[] = [];
 		if (!this._name) errors.push('PROC cannot be executed if [name] has not been set');
