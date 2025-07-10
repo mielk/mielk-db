@@ -22,8 +22,13 @@ import { Pool } from 'mysql2/promise';
 import Db from '../db.js';
 
 export class Proc {
+	private _pool: Pool;
 	private _name: string = '';
 	private _params: (string | number | boolean | null)[] = [];
+
+	constructor(pool: Pool) {
+		this._pool = pool;
+	}
 
 	___props(): ObjectOfAny {
 		return {
@@ -43,13 +48,13 @@ export class Proc {
 		return this;
 	}
 
-	execute = (pool: Pool): Promise<any> => {
+	execute = (): Promise<any> => {
 		const sql: string = sqlBuilder.getCallProc(this._name, this._params);
 		const validation: Validation = this.validate();
 		if (!validation.status) {
 			return new Promise<JsonRecordSet>((res, rej) => rej(new Error(validation.message)));
 		} else {
-			return pool.query(sql);
+			return this._pool.query(sql);
 		}
 	};
 

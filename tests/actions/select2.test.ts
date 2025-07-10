@@ -21,13 +21,14 @@ const config: ConnectionData = {
 describe('sql', () => {
 	test('test stored procedure', async () => {
 		Db.setConnectionDetails(config);
-		const proc: Proc = new Proc();
-		const pool: Pool = Db.getPool();
+		// const proc: Proc = new Proc();
+		const proc: Proc = Db.proc();
+		// const pool: Pool = Db.getPool();
 		const procName: string = 'sp___users___get';
 		const sql: string = 'CALL sp___users___get()';
 
 		// try {
-		// 	const y = await proc.name(procName).execute(pool);
+		// 	const y = await proc.name(procName).execute();
 		// 	const a = 1;
 		// } catch (err) {
 		// 	const b = 1;

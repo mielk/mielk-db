@@ -29,16 +29,6 @@ const config: ConnectionData = {
 	password: 'password',
 };
 
-const pool: Pool = createPool({
-	host: config.host,
-	database: config.database,
-	user: config.user,
-	password: config.password,
-	waitForConnections: true,
-	connectionLimit: 10, // Adjust depending on your needs
-	queueLimit: 0,
-});
-
 const usersFieldsMap: TableFieldsMap = {
 	id: 'user_id',
 	name: 'user_name',
@@ -111,7 +101,7 @@ mockGetProc.mockReturnValue(sql);
 
 describe('constructor', () => {
 	test('should create new instance of Proc class', () => {
-		const proc: Proc = new Proc();
+		const proc: Proc = new Proc(createPool({}));
 		expect(proc).toBeInstanceOf(Proc);
 	});
 });
@@ -119,20 +109,20 @@ describe('constructor', () => {
 describe('name', () => {
 	test('should assign new value to [_name] parameter', () => {
 		const name = 'sp___proc_name';
-		const proc: Proc = new Proc().name(name);
+		const proc: Proc = new Proc(createPool({})).name(name);
 		expect(proc.___props().name).toEqual(name);
 	});
 
 	test('should throw an error if empty string is passed', () => {
 		expect(() => {
-			new Proc().name(' ');
+			new Proc(createPool({})).name(' ');
 		}).toThrow('Procedure name cannot be empty');
 	});
 });
 
 describe('params', () => {
 	test('should append new params ', () => {
-		const proc: Proc = new Proc().params(1, 'a', false);
+		const proc: Proc = new Proc(createPool({})).params(1, 'a', false);
 		const params: (string | number | boolean | null)[] = proc.___props().params;
 		expect(params.length).toEqual(3);
 		expect(params[0]).toEqual(1);
@@ -147,7 +137,7 @@ describe('execute', () => {
 	});
 
 	test('should throw an error if invoked without the name', async () => {
-		await expect(new Proc().params(1, 'a').execute(pool)).rejects.toThrow(
+		await expect(new Proc(createPool({})).params(1, 'a').execute()).rejects.toThrow(
 			'PROC cannot be executed if [name] has not been set'
 		);
 	});

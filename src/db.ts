@@ -41,7 +41,7 @@ const del = () => new Delete(connData);
 
 const insert = () => new Insert(connData);
 
-const proc = () => new Proc();
+const proc = () => new Proc(pool);
 
 const getPool = (): Pool => pool;
 
