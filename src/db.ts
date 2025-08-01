@@ -45,7 +45,24 @@ const proc = () => new Proc(pool);
 
 const getPool = (): Pool => pool;
 
-export { setConnectionDetails, select, update, del, insert, proc, getPool };
+const beginTransaction = async (): Promise<void> => pool.beginTransaction();
+
+const commitTransaction = async (): Promise<void> => pool.commit();
+
+const rollbackTransaction = async (): Promise<void> => pool.rollback();
+
+export {
+	setConnectionDetails,
+	select,
+	update,
+	del,
+	insert,
+	proc,
+	getPool,
+	beginTransaction,
+	commitTransaction,
+	rollbackTransaction,
+};
 export default {
 	setConnectionDetails,
 	select,
@@ -54,4 +71,7 @@ export default {
 	insert,
 	proc,
 	getPool,
+	beginTransaction,
+	commitTransaction,
+	rollbackTransaction,
 };
