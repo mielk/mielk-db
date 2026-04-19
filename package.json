@@ -18,12 +18,12 @@
 			"import": "./dist/index.js",
 			"default": "./dist/index.js"
 		},
-		"./db-mssql": {
+		"./mssql": {
 			"types": "./dist/mssql/index.d.ts",
 			"import": "./dist/mssql/index.js",
 			"default": "./dist/mssql/index.js"
 		},
-		"./db-pg": {
+		"./pg": {
 			"types": "./dist/pg/index.d.ts",
 			"import": "./dist/pg/index.js",
 			"default": "./dist/pg/index.js"
