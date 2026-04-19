@@ -2,7 +2,7 @@ import { Pool, PoolClient } from 'pg';
 import { PostgreDbConfig } from '../types/DbConfig.js';
 import { QueryExecutor } from '../types/Executor.js';
 import { getClient } from './transaction.js';
-import { Msg } from '../../internal/messaging/messageTags.js';
+import { Msg } from '../../msg/messageTags.js';
 
 let config: PostgreDbConfig | null = null;
 let pool: Pool | null = null;

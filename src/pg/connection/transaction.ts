@@ -1,6 +1,6 @@
 import { Pool, PoolClient } from "pg";
 import { getPool } from "./pool.js";
-import { Msg } from "../../internal/messaging/messageTags.js";
+import { Msg } from "../../msg/messageTags.js";
 
 let client: PoolClient | null = null;
 

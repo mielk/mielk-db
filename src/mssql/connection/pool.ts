@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { RawData, SqlClient, sqlQueryParamType } from 'msnodesqlv8/types';
 import { MsSqlDbConfig } from '../types/DbConfig.js';
-import { Msg } from '../../internal/messaging/messageTags.js';
+import { Msg } from '../../msg/messageTags.js';
 
 let sql: SqlClient | null = null;
 let connectionString = '';

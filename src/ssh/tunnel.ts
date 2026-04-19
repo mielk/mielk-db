@@ -1,6 +1,6 @@
 import { createTunnel, TunnelOptions, ForwardOptions, SshOptions, ServerOptions } from 'tunnel-ssh';
 import { AddressInfo } from 'net';
-import { Msg } from '../../internal/messaging/messageTags.js';
+import { Msg } from '../msg/messageTags.js';
 
 const tunnelOptions: TunnelOptions = {
 	autoClose: true,
