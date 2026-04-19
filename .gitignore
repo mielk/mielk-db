@@ -1,6 +1,45 @@
+
+# compiled output
+build
+dist
+dist-ssr
+tmp
+out-tsc
+*.local
+
+# logs
+logs
+*.log
+
+# dependencies
 node_modules
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# tests
+test-output
 reports
-lib
-/.rules
-/eng
-/todo
+coverage
+
+# Env files
+.env
+.env.local
+.env.*.local

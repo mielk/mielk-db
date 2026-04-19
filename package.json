@@ -1,43 +1,74 @@
 {
-  "name": "mielk-db",
-  "version": "1.1.10",
-  "description": "Helpful utils for MySQL operations.",
-  "main": "lib/index.js",
-  "types": "lib/index.d.ts",
-  "type": "module",
-  "scripts": {
-    "prepublishOnly": "npm test",
-    "test": "jest --detectOpenHandles",
-    "build": "tsc"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/mielk/mielk-db.git"
-  },
-  "author": "Tomasz Mielniczek",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/mielk/mielk-db/issues"
-  },
-  "homepage": "https://github.com/mielk/mielk-db#readme",
-  "devDependencies": {
-    "@babel/cli": "^7.25.7",
-    "@babel/core": "^7.25.8",
-    "@babel/node": "^7.25.7",
-    "@babel/preset-env": "^7.25.8",
-    "@types/jest": "^29.5.13",
-    "@types/node": "^22.7.5",
-    "babel-jest": "^29.7.0",
-    "jest": "^29.7.0",
-    "jest-html-reporters": "^3.1.7",
-    "ts-jest": "^29.2.5",
-    "typescript": "^5.6.3"
-  },
-  "dependencies": {
-    "mielk-fn": "^1.0.26",
-    "mysql2": "^3.11.3"
-  },
-  "files": [
-    "lib"
-  ]
+	"name": "mielk-db",
+	"version": "1.1.10",
+	"description": "Wrapper for DB operations.",
+	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"scripts": {
+		"test": "jest --watchAll=false --detectOpenHandles",
+		"build": "tsc",
+		"prepublishOnly": "npm test && npm run build",
+		"dev": "tsc -w",
+		"release": "standard-version"
+	},
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"default": "./dist/index.js"
+		},
+		"./db-mssql": {
+			"types": "./dist/mssql/index.d.ts",
+			"import": "./dist/mssql/index.js",
+			"default": "./dist/mssql/index.js"
+		},
+		"./db-pg": {
+			"types": "./dist/pg/index.d.ts",
+			"import": "./dist/pg/index.js",
+			"default": "./dist/pg/index.js"
+		}
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/mielk/mielk-db.git"
+	},
+	"author": "Tomasz Mielniczek",
+	"license": "ISC",
+	"bugs": {
+		"url": "https://github.com/mielk/mielk-db/issues"
+	},
+	"homepage": "https://github.com/mielk/mielk-db#readme",
+	"files": [
+		"dist"
+	],
+	"devDependencies": {
+		"@babel/cli": "^7.25.7",
+		"@babel/core": "^7.25.8",
+		"@babel/node": "^7.25.7",
+		"@babel/preset-env": "^7.25.8",
+		"@types/jest": "^30.0.0",
+		"@types/node": "^22.7.5",
+		"@types/pg": "^8.18.0",
+		"babel-jest": "^29.7.0",
+		"jest": "^30.3.0",
+		"jest-html-reporters": "^3.1.7",
+		"standard-version": "^9.5.0",
+		"ts-jest": "^29.4.6",
+		"tslib": "^2.3.0",
+		"typescript": "^5.9.2"
+	},
+	"peerDependencies": {
+		"express": "^5",
+		"zod": "^4"
+	},
+	"optionalDependencies": {
+		"msnodesqlv8": "^5",
+		"pg": "^8.20.0",
+		"mysql2": "^3.11.3"
+	},
+	"dependencies": {
+		"mielk-fn": "^1.2.6",
+		"tunnel-ssh": "^5.2.0"
+	}
 }
